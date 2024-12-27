@@ -516,3 +516,384 @@ out:
 
 }
 
+
+void MainWindow::on_pushButton_sm3_hash_clicked()
+{
+    QString hash_str = NULL;
+    QString hash_result = NULL;
+
+
+    hash_str = ui->textEdit_sm3_plain->toPlainText();
+    qDebug() << "hash_str:" << hash_str;
+    QByteArray hash_bytes = QByteArray::fromHex(hash_str.toUtf8());
+
+
+    unsigned char hash[32];
+    unsigned int hash_len = 32;
+
+    EVP_MD_CTX *md_ctx = NULL;
+
+    md_ctx = EVP_MD_CTX_new();
+    if (!md_ctx) {
+        qDebug() << "Failed to create EVP_MD_CTX.";
+        goto out;
+    }
+
+    if (EVP_DigestInit(md_ctx, EVP_sm3()) != 1) {
+        qDebug() << "Failed to initialize SM3 digest.";
+        goto out;
+    }
+
+    if (EVP_DigestUpdate(md_ctx, (const unsigned char *)hash_bytes.constData(), hash_bytes.size()) != 1) {
+        qDebug() << "Failed to update SM3 digest.";
+        goto out;
+    }
+
+    if (EVP_DigestFinal(md_ctx, hash, &hash_len) != 1) {
+        qDebug() << "Failed to finalize SM3 digest.";
+        goto out;
+    }
+
+    hash_result = QByteArray(reinterpret_cast<char *>(hash), hash_len).toHex();
+    qDebug() << "Hash:" << hash_result;
+
+    ui->textEdit_sm3_hash_result->setText(hash_result);
+
+
+out:
+    if (md_ctx) {
+        EVP_MD_CTX_free(md_ctx);
+    }
+}
+
+
+int sm2_compute_z_digest(uint8_t *out,
+                         const EVP_MD *digest,
+                         const uint8_t *id,
+                         const size_t id_len,
+                         const EC_KEY *key)
+{
+    int rc = 0;
+    const EC_GROUP *group = EC_KEY_get0_group(key);
+    BN_CTX *ctx = NULL;
+    EVP_MD_CTX *hash = NULL;
+    BIGNUM *p = NULL;
+    BIGNUM *a = NULL;
+    BIGNUM *b = NULL;
+    BIGNUM *xG = NULL;
+    BIGNUM *yG = NULL;
+    BIGNUM *xA = NULL;
+    BIGNUM *yA = NULL;
+    int p_bytes = 0;
+    uint8_t *buf = NULL;
+    uint16_t entl = 0;
+    uint8_t e_byte = 0;
+
+    hash = EVP_MD_CTX_new();
+    ctx = BN_CTX_new();
+    if (hash == NULL || ctx == NULL) {
+        SM2err(SM2_F_SM2_COMPUTE_Z_DIGEST, ERR_R_MALLOC_FAILURE);
+        goto done;
+    }
+
+    p = BN_CTX_get(ctx);
+    a = BN_CTX_get(ctx);
+    b = BN_CTX_get(ctx);
+    xG = BN_CTX_get(ctx);
+    yG = BN_CTX_get(ctx);
+    xA = BN_CTX_get(ctx);
+    yA = BN_CTX_get(ctx);
+
+    if (yA == NULL) {
+        SM2err(SM2_F_SM2_COMPUTE_Z_DIGEST, ERR_R_MALLOC_FAILURE);
+        goto done;
+    }
+
+    if (!EVP_DigestInit(hash, digest)) {
+        SM2err(SM2_F_SM2_COMPUTE_Z_DIGEST, ERR_R_EVP_LIB);
+        goto done;
+    }
+
+    /* Z = h(ENTL || ID || a || b || xG || yG || xA || yA) */
+
+    if (id_len >= (UINT16_MAX / 8)) {
+        /* too large */
+        // SM2err(SM2_F_SM2_COMPUTE_Z_DIGEST, SM2_R_ID_TOO_LARGE);
+        qDebug() << "ID too large";
+        goto done;
+    }
+
+    entl = (uint16_t)(8 * id_len);
+
+    e_byte = entl >> 8;
+    if (!EVP_DigestUpdate(hash, &e_byte, 1)) {
+        SM2err(SM2_F_SM2_COMPUTE_Z_DIGEST, ERR_R_EVP_LIB);
+        goto done;
+    }
+    e_byte = entl & 0xFF;
+    if (!EVP_DigestUpdate(hash, &e_byte, 1)) {
+        SM2err(SM2_F_SM2_COMPUTE_Z_DIGEST, ERR_R_EVP_LIB);
+        goto done;
+    }
+
+    if (id_len > 0 && !EVP_DigestUpdate(hash, id, id_len)) {
+        SM2err(SM2_F_SM2_COMPUTE_Z_DIGEST, ERR_R_EVP_LIB);
+        goto done;
+    }
+
+    if (!EC_GROUP_get_curve(group, p, a, b, ctx)) {
+        SM2err(SM2_F_SM2_COMPUTE_Z_DIGEST, ERR_R_EC_LIB);
+        goto done;
+    }
+
+    p_bytes = BN_num_bytes(p);
+    buf = (uint8_t *)OPENSSL_zalloc(p_bytes);
+    if (buf == NULL) {
+        SM2err(SM2_F_SM2_COMPUTE_Z_DIGEST, ERR_R_MALLOC_FAILURE);
+        goto done;
+    }
+
+    if (BN_bn2binpad(a, buf, p_bytes) < 0
+        || !EVP_DigestUpdate(hash, buf, p_bytes)
+        || BN_bn2binpad(b, buf, p_bytes) < 0
+        || !EVP_DigestUpdate(hash, buf, p_bytes)
+        || !EC_POINT_get_affine_coordinates(group,
+                                            EC_GROUP_get0_generator(group),
+                                            xG, yG, ctx)
+        || BN_bn2binpad(xG, buf, p_bytes) < 0
+        || !EVP_DigestUpdate(hash, buf, p_bytes)
+        || BN_bn2binpad(yG, buf, p_bytes) < 0
+        || !EVP_DigestUpdate(hash, buf, p_bytes)
+        || !EC_POINT_get_affine_coordinates(group,
+                                            EC_KEY_get0_public_key(key),
+                                            xA, yA, ctx)
+        || BN_bn2binpad(xA, buf, p_bytes) < 0
+        || !EVP_DigestUpdate(hash, buf, p_bytes)
+        || BN_bn2binpad(yA, buf, p_bytes) < 0
+        || !EVP_DigestUpdate(hash, buf, p_bytes)
+        || !EVP_DigestFinal(hash, out, NULL)) {
+        SM2err(SM2_F_SM2_COMPUTE_Z_DIGEST, ERR_R_INTERNAL_ERROR);
+        goto done;
+    }
+
+    rc = 1;
+
+done:
+    OPENSSL_free(buf);
+    BN_CTX_free(ctx);
+    EVP_MD_CTX_free(hash);
+    return rc;
+}
+
+
+void MainWindow::on_pushButton_sm3_hash_ZA_clicked()
+{
+
+    QString pubkeyStr = ui->textEdit_sm2_pubkey->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString uidStr = ui->textEdit_sm3_userid->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString hash_str = ui->textEdit_sm3_plain->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString hash_result = NULL;
+    QString za_str = NULL;
+
+    qDebug() << "Public Key:" << pubkeyStr;
+    qDebug() << "User ID:" << uidStr;
+    qDebug() << "Hash:" << hash_str;
+
+    QByteArray pubkeyBytes = QByteArray::fromHex(pubkeyStr.toUtf8());
+    QByteArray uidBytes = QByteArray::fromHex(uidStr.toUtf8());
+    QByteArray hashBytes = QByteArray::fromHex(hash_str.toUtf8());
+
+    const EVP_MD *digest_md = EVP_sm3();
+    const int md_size = EVP_MD_size(digest_md);
+
+    uint8_t *za = NULL;
+    uint8_t *e = NULL;
+    EC_KEY *ec_key = NULL;
+    EVP_MD_CTX *hash = NULL;
+
+
+    za = (uint8_t *)OPENSSL_malloc(md_size);
+    if (za == NULL) {
+        qDebug() << "Failed to allocate memory for ZA.";
+        goto out;
+    }
+
+    e = (uint8_t *)OPENSSL_malloc(md_size);
+    if (e == NULL) {
+        qDebug() << "Failed to allocate memory for E.";
+        goto out;
+    }
+
+    ec_key = EC_KEY_new_by_curve_name(NID_sm2);
+    if (ec_key == NULL) {
+        qDebug() << "Failed to create EC_KEY.";
+        goto out;
+    }
+
+    if (EC_KEY_oct2key(ec_key, (const unsigned char *)pubkeyBytes.constData(), pubkeyBytes.size(), NULL) != 1) {
+        qDebug() << "Failed to set public key to EC_KEY.";
+        goto out;
+    }
+
+    if (!sm2_compute_z_digest(za, digest_md, (const uint8_t *)uidBytes.constData(), uidBytes.size(), ec_key)) {
+        qDebug() << "Failed to compute ZA digest.";
+        goto out;
+    }
+
+    za_str = QByteArray(reinterpret_cast<char *>(za), md_size).toHex();
+    qDebug() << "ZA:" << za_str;
+
+    hash = EVP_MD_CTX_new();
+
+    if (!EVP_DigestInit(hash, digest_md)
+        || !EVP_DigestUpdate(hash, za, md_size)
+        || !EVP_DigestUpdate(hash, hashBytes.constData(), hashBytes.size())
+        /* reuse z buffer to hold H(Z || M) */
+        || !EVP_DigestFinal(hash, za, NULL)) {
+        SM2err(SM2_F_SM2_COMPUTE_MSG_HASH, ERR_R_EVP_LIB);
+        goto out;
+    }
+
+
+    hash_result = QByteArray(reinterpret_cast<char *>(za), md_size).toHex();
+
+    qDebug() << "Hash:" << hash_result;
+
+    ui->textEdit_sm3_hash_result->setText(hash_result);
+
+
+
+out:
+    if (za) {
+        OPENSSL_free(za);
+    }
+    if (e) {
+        OPENSSL_free(e);
+    }
+    if (ec_key) {
+        EC_KEY_free(ec_key);
+    }
+
+}
+
+
+void MainWindow::on_pushButton_sm2_tab_clear_clicked()
+{
+    ui->textEdit_sm2_prikey->clear();
+    ui->textEdit_sm2_pubkey->clear();
+    ui->textEdit_sm2_sign_data->clear();
+    ui->textEdit_sm2_sign_value->clear();
+    ui->textEdit_sm2_verify_result->clear();
+    ui->textEdit_sm2_encrypt_plain->clear();
+    ui->textEdit_sm2_encrypt_result->clear();
+    ui->textEdit_sm2_decrypt_plain->clear();
+    ui->textEdit_sm2_decrypt_result->clear();
+}
+
+
+void MainWindow::on_pushButton_sm3_tab_clear_clicked()
+{
+    ui->textEdit_sm3_userid->clear();
+    ui->textEdit_sm3_plain->clear();
+    ui->textEdit_sm3_hash_result->clear();
+    ui->textEdit_sm3_publickey->clear();
+}
+
+
+void MainWindow::on_pushButton_sm4_encrypt_clicked()
+{
+    QString keyStr = ui->textEdit_sm4_key->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString plaintextStr = ui->textEdit_sm4_input->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString ivStr = ui->textEdit_sm4_iv->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString modeStr = ui->comboBox_sm4_mode->currentText();
+
+    QString ciphertextStr = NULL;
+
+    EVP_CIPHER_CTX *ctx = NULL;
+    EVP_CIPHER *cipher = NULL;
+
+    QByteArray keyBytes = QByteArray::fromHex(keyStr.toUtf8());
+    QByteArray plaintextBytes = QByteArray::fromHex(plaintextStr.toUtf8());
+    QByteArray ivBytes = QByteArray::fromHex(ivStr.toUtf8());
+
+
+    unsigned char *ciphertext = NULL;
+    size_t ciphertext_len = 0;
+    size_t tmp_len = 0;
+
+    ciphertext = (unsigned char *)OPENSSL_malloc(plaintextBytes.size());
+    if (!ciphertext) {
+        qDebug() << "Failed to allocate memory for ciphertext.";
+        goto out;
+    }
+
+    ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        qDebug() << "Failed to create EVP_CIPHER_CTX.";
+        goto out;
+    }
+
+    if (modeStr == "ECB") {
+        if (EVP_CipherInit(ctx, EVP_sm4_ecb(), (const unsigned char *)keyBytes.constData(), NULL, 1) != 1) {
+            qDebug() << "Failed to set key.";
+            goto out;
+        }
+    } else if (modeStr == "CBC") {
+        if (EVP_CipherInit(ctx, EVP_sm4_cbc(), (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 1) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+    } else if (modeStr == "CFB") {
+        if (EVP_CipherInit(ctx, EVP_sm4_cfb(), (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 1) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+    } else if (modeStr == "OFB") {
+        if (EVP_CipherInit(ctx, EVP_sm4_ofb(), (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 1) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+    } else if (modeStr == "CTR") {
+        if (EVP_CipherInit(ctx, EVP_sm4_ctr(), (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 1) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+    } else {
+        qDebug() << "Unsupported mode.";
+        goto out;
+    }
+
+    // 禁用补位
+    EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+    if (EVP_CipherUpdate(ctx, ciphertext, (int *)&tmp_len, (const unsigned char *)plaintextBytes.constData(), plaintextBytes.size()) != 1) {
+        qDebug() << "Failed to encrypt plaintext.";
+        goto out;
+    }
+    qDebug() << "tmp_len:" << tmp_len;
+    ciphertext_len += tmp_len;
+
+    if (EVP_CipherFinal(ctx, ciphertext + tmp_len, (int *)&tmp_len) != 1) {
+        qDebug() << "Failed to finalize encryption.";
+        goto out;
+    }
+    qDebug() << "tmp_len:" << tmp_len;
+    ciphertext_len += tmp_len;
+
+
+    ciphertextStr = QByteArray(reinterpret_cast<char *>(ciphertext), ciphertext_len).toHex();
+
+    qDebug() << "Ciphertext:" << ciphertextStr;
+
+    ui->textEdit_sm4_output->setText(ciphertextStr);
+
+
+out:
+    if (ciphertext) {
+        OPENSSL_free(ciphertext);
+    }
+    if (ctx) {
+        EVP_CIPHER_CTX_free(ctx);
+    }
+}
+

@@ -29,6 +29,16 @@ private slots:
 
     void on_pushButton_sm2_prikey_decrypt_clicked();
 
+    void on_pushButton_sm3_hash_clicked();
+
+    void on_pushButton_sm3_hash_ZA_clicked();
+
+    void on_pushButton_sm2_tab_clear_clicked();
+
+    void on_pushButton_sm3_tab_clear_clicked();
+
+    void on_pushButton_sm4_encrypt_clicked();
+
 private:
     Ui::MainWindow *ui;
     void generate_sm2_keypair();
