@@ -41,7 +41,9 @@ private slots:
 
     void on_pushButton_gen_rsa_keypair_clicked();
 
-    void on_pushButton_rsa_prikey_sign_clicked();
+    void on_pushButton_rsa_prikey_operation_clicked();
+
+    void on_pushButton_rsa_pubkey_operation_clicked();
 
 private:
     Ui::MainWindow *ui;

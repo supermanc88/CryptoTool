@@ -707,29 +707,6 @@
      <attribute name="title">
       <string>RSA</string>
      </attribute>
-     <widget class="QTextEdit" name="textEdit_rsa_sign_data">
-      <property name="geometry">
-       <rect>
-        <x>230</x>
-        <y>240</y>
-        <width>231</width>
-        <height>71</height>
-       </rect>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_21">
-      <property name="geometry">
-       <rect>
-        <x>170</x>
-        <y>370</y>
-        <width>58</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>签名值</string>
-      </property>
-     </widget>
      <widget class="QLabel" name="label_22">
       <property name="geometry">
        <rect>
@@ -782,20 +759,7 @@
        <string>加密结果</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_26">
-      <property name="geometry">
-       <rect>
-        <x>170</x>
-        <y>470</y>
-        <width>58</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>验签结果</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="pushButton_rsa_pubkey_verify">
+     <widget class="QPushButton" name="pushButton_rsa_pubkey_operation">
       <property name="geometry">
        <rect>
         <x>40</x>
@@ -805,7 +769,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>公钥验签</string>
+       <string>公钥运算</string>
       </property>
      </widget>
      <widget class="QPushButton" name="pushButton_rsa_tab_clear">
@@ -819,16 +783,6 @@
       </property>
       <property name="text">
        <string>清空</string>
-      </property>
-     </widget>
-     <widget class="QTextEdit" name="textEdit_rsa_verify_result">
-      <property name="geometry">
-       <rect>
-        <x>230</x>
-        <y>440</y>
-        <width>231</width>
-        <height>71</height>
-       </rect>
       </property>
      </widget>
      <widget class="QTextEdit" name="textEdit_rsa_prikey">
@@ -851,29 +805,6 @@
        </rect>
       </property>
      </widget>
-     <widget class="QPushButton" name="pushButton_rsa_prikey_decrypt">
-      <property name="geometry">
-       <rect>
-        <x>40</x>
-        <y>250</y>
-        <width>100</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>私钥解密</string>
-      </property>
-     </widget>
-     <widget class="QTextEdit" name="textEdit_rsa_sign_value">
-      <property name="geometry">
-       <rect>
-        <x>230</x>
-        <y>340</y>
-        <width>231</width>
-        <height>71</height>
-       </rect>
-      </property>
-     </widget>
      <widget class="QTextEdit" name="textEdit_rsa_decrypt_plain">
       <property name="geometry">
        <rect>
@@ -882,19 +813,6 @@
         <width>231</width>
         <height>71</height>
        </rect>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_27">
-      <property name="geometry">
-       <rect>
-        <x>170</x>
-        <y>250</y>
-        <width>58</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>签名原文</string>
       </property>
      </widget>
      <widget class="QTextEdit" name="textEdit_rsa_encrypt_plain">
@@ -920,7 +838,7 @@
        <string>私钥</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="pushButton_rsa_prikey_sign">
+     <widget class="QPushButton" name="pushButton_rsa_prikey_operation">
       <property name="geometry">
        <rect>
         <x>40</x>
@@ -930,20 +848,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>私钥签名</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="pushButton_rsa_pubkey_encrypt">
-      <property name="geometry">
-       <rect>
-        <x>40</x>
-        <y>200</y>
-        <width>100</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>公钥加密</string>
+       <string>私钥运算</string>
       </property>
      </widget>
      <widget class="QTextEdit" name="textEdit_rsa_pubkey">
