@@ -39,6 +39,10 @@ private slots:
 
     void on_pushButton_sm4_encrypt_clicked();
 
+    void on_pushButton_gen_rsa_keypair_clicked();
+
+    void on_pushButton_rsa_prikey_sign_clicked();
+
 private:
     Ui::MainWindow *ui;
     void generate_sm2_keypair();

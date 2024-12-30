@@ -6,6 +6,8 @@
 #include <openssl/pem.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
+#include <openssl/rsa.h>
+
 #include <QDebug>
 #include <QRegularExpression>
 
@@ -805,7 +807,14 @@ void MainWindow::on_pushButton_sm4_encrypt_clicked()
     QString keyStr = ui->textEdit_sm4_key->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString plaintextStr = ui->textEdit_sm4_input->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString ivStr = ui->textEdit_sm4_iv->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString aadStr = ui->textEdit_sm4_aad->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString modeStr = ui->comboBox_sm4_mode->currentText();
+
+    qDebug() << "Key:" << keyStr;
+    qDebug() << "Plaintext:" << plaintextStr;
+    qDebug() << "IV:" << ivStr;
+    qDebug() << "AAD:" << aadStr;
+    qDebug() << "Mode:" << modeStr;
 
     QString ciphertextStr = NULL;
 
@@ -815,11 +824,15 @@ void MainWindow::on_pushButton_sm4_encrypt_clicked()
     QByteArray keyBytes = QByteArray::fromHex(keyStr.toUtf8());
     QByteArray plaintextBytes = QByteArray::fromHex(plaintextStr.toUtf8());
     QByteArray ivBytes = QByteArray::fromHex(ivStr.toUtf8());
+    QByteArray aadBytes = QByteArray::fromHex(aadStr.toUtf8());
 
 
     unsigned char *ciphertext = NULL;
     size_t ciphertext_len = 0;
     size_t tmp_len = 0;
+    unsigned char tag[16];
+
+    EVP_CIPHER *other_cipher = NULL;
 
     ciphertext = (unsigned char *)OPENSSL_malloc(plaintextBytes.size());
     if (!ciphertext) {
@@ -858,6 +871,77 @@ void MainWindow::on_pushButton_sm4_encrypt_clicked()
             qDebug() << "Failed to set key and IV.";
             goto out;
         }
+    } else if (modeStr == "GCM") {
+        other_cipher = EVP_CIPHER_fetch(NULL, "SM4-GCM", NULL);
+        if (!other_cipher) {
+            qDebug() << "Failed to fetch cipher. SM4-GCM";
+            goto out;
+        }
+        if (EVP_CipherInit(ctx, other_cipher, NULL, NULL, 1) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+        // if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, NULL) != 1) {
+        //     qDebug() << "Failed to set IV.";
+        //     goto out;
+        // }
+        // if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, NULL) != 1) {
+        //     qDebug() << "Failed to set tag.";
+        //     goto out;
+        // }
+        if (EVP_CipherInit(ctx, NULL, (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 1) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+        if (EVP_CipherUpdate(ctx, NULL, (int *)&tmp_len, (const unsigned char *)aadBytes.constData(), aadBytes.size()) != 1) {
+            qDebug() << "Failed to set AAD.";
+            goto out;
+        }
+
+    } else if (modeStr == "CCM") {
+        other_cipher = EVP_CIPHER_fetch(NULL, "SM4-CCM", NULL);
+        if (!other_cipher) {
+            qDebug() << "Failed to fetch cipher. SM4-CCM";
+            goto out;
+        }
+        if (EVP_CipherInit(ctx, other_cipher, NULL, NULL, 1) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_IVLEN, 12, NULL) != 1) {
+            qDebug() << "Failed to set IV.";
+            goto out;
+        }
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_TAG, 16, NULL) != 1) {
+            qDebug() << "Failed to set tag.";
+            goto out;
+        }
+        // if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_MSGLEN, plaintextBytes.size(), NULL) != 1) {
+        //     qDebug() << "Failed to set message length.";
+        //     goto out;
+        // }
+        if (EVP_CipherInit(ctx, NULL, (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 1) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+        if (EVP_CipherUpdate(ctx, NULL, (int *)&tmp_len, NULL, plaintextBytes.size()) != 1) {
+            qDebug() << "Failed to set message length.";
+            goto out;
+        }
+        if (EVP_CipherUpdate(ctx, NULL, (int *)&tmp_len, (const unsigned char *)aadBytes.constData(), aadBytes.size()) != 1) {
+            qDebug() << "Failed to set AAD.";
+            goto out;
+        }
+    } else if (modeStr == "XTS") {
+        other_cipher = EVP_CIPHER_fetch(NULL, "SM4-XTS", NULL);
+        if (!other_cipher) {
+            qDebug() << "Failed to fetch cipher. SM4-XTS";
+            goto out;
+        }
+        if (EVP_CipherInit(ctx, other_cipher, (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 1) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
     } else {
         qDebug() << "Unsupported mode.";
         goto out;
@@ -888,12 +972,326 @@ void MainWindow::on_pushButton_sm4_encrypt_clicked()
     ui->textEdit_sm4_output->setText(ciphertextStr);
 
 
+    if (modeStr == "GCM") {
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag) != 1) {
+            qDebug() << "Failed to get tag.";
+            goto out;
+        }
+        QString tagStr = QByteArray(reinterpret_cast<char *>(tag), 16).toHex();
+        qDebug() << "Tag:" << tagStr;
+        ui->textEdit_sm4_output_tag->setText(tagStr);
+    }
+    if (modeStr == "CCM") {
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_GET_TAG, 16, tag) != 1) {
+            qDebug() << "Failed to get tag.";
+            goto out;
+        }
+        QString tagStr = QByteArray(reinterpret_cast<char *>(tag), 16).toHex();
+        qDebug() << "Tag:" << tagStr;
+        ui->textEdit_sm4_output_tag->setText(tagStr);
+    }
+
+
 out:
     if (ciphertext) {
         OPENSSL_free(ciphertext);
     }
     if (ctx) {
         EVP_CIPHER_CTX_free(ctx);
+    }
+}
+
+
+void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
+{
+    EVP_PKEY *pkey = NULL;
+    EVP_PKEY_CTX *pctx = NULL;
+
+    int rsa_key_len = 2048;
+
+    RSA *rsa = NULL;
+
+    BIGNUM *n = NULL;
+    BIGNUM *e = NULL;
+    BIGNUM *d = NULL;
+    BIGNUM *p = NULL;
+    BIGNUM *q = NULL;
+    BIGNUM *dmp1 = NULL;
+    BIGNUM *dmq1 = NULL;
+    BIGNUM *iqmp = NULL;
+
+    char *n_hex = NULL;
+    char *e_hex = NULL;
+    char *d_hex = NULL;
+    char *p_hex = NULL;
+    char *q_hex = NULL;
+    char *dmp1_hex = NULL;
+    char *dmq1_hex = NULL;
+    char *iqmp_hex = NULL;
+
+    QString nStr = NULL;
+    QString eStr = NULL;
+    QString dStr = NULL;
+    QString pStr = NULL;
+    QString qStr = NULL;
+    QString dmp1Str = NULL;
+    QString dmq1Str = NULL;
+    QString iqmpStr = NULL;
+
+    QString rsa_pubkey = NULL;
+    QString rsa_prikey = NULL;
+
+    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
+    if (!pctx) {
+        qDebug() << "Failed to create EVP_PKEY_CTX.";
+        goto out;
+    }
+
+    if (EVP_PKEY_keygen_init(pctx) <= 0) {
+        qDebug() << "Failed to initialize key generation.";
+        goto out;
+    }
+
+    if (EVP_PKEY_CTX_set_rsa_keygen_bits(pctx, rsa_key_len) <= 0) {
+        qDebug() << "Failed to set key length.";
+        goto out;
+    }
+
+    if (EVP_PKEY_keygen(pctx, &pkey) <= 0) {
+        qDebug() << "Failed to generate key pair.";
+        goto out;
+    }
+
+
+    rsa = EVP_PKEY_get1_RSA(pkey);
+
+    RSA_get0_key(rsa, (const BIGNUM **)&n, (const BIGNUM **)&e, (const BIGNUM **)&d);
+    RSA_get0_factors(rsa, (const BIGNUM **)&p, (const BIGNUM **)&q);
+    RSA_get0_crt_params(rsa, (const BIGNUM **)&dmp1, (const BIGNUM **)&dmq1, (const BIGNUM **)&iqmp);
+
+    n_hex = BN_bn2hex(n);
+    if (!n_hex) {
+        qDebug() << "Failed to convert n to hex.";
+        goto out;
+    }
+    nStr = n_hex;
+
+    e_hex = BN_bn2hex(e);
+    if (!e_hex) {
+        qDebug() << "Failed to convert e to hex.";
+        goto out;
+    }
+    eStr = e_hex;
+
+    d_hex = BN_bn2hex(d);
+    if (!d_hex) {
+        qDebug() << "Failed to convert d to hex.";
+        goto out;
+    }
+    dStr = d_hex;
+
+    p_hex = BN_bn2hex(p);
+    if (!p_hex) {
+        qDebug() << "Failed to convert p to hex.";
+        goto out;
+    }
+    pStr = p_hex;
+
+    q_hex = BN_bn2hex(q);
+    if (!q_hex) {
+        qDebug() << "Failed to convert q to hex.";
+        goto out;
+    }
+    qStr = q_hex;
+
+    dmp1_hex = BN_bn2hex(dmp1);
+    if (!dmp1_hex) {
+        qDebug() << "Failed to convert dmp1 to hex.";
+        goto out;
+    }
+    dmp1Str = dmp1_hex;
+
+    dmq1_hex = BN_bn2hex(dmq1);
+    if (!dmq1_hex) {
+        qDebug() << "Failed to convert dmq1 to hex.";
+        goto out;
+    }
+    dmq1Str = dmq1_hex;
+
+    iqmp_hex = BN_bn2hex(iqmp);
+    if (!iqmp_hex) {
+        qDebug() << "Failed to convert iqmp to hex.";
+        goto out;
+    }
+    iqmpStr = iqmp_hex;
+
+    rsa_pubkey = nStr + eStr;
+    rsa_prikey = nStr + dStr;
+
+    ui->textEdit_rsa_pubkey->setText(rsa_pubkey);
+    ui->textEdit_rsa_prikey->setText(rsa_prikey);
+
+out:
+    if (pkey) {
+        EVP_PKEY_free(pkey);
+    }
+    if (pctx) {
+        EVP_PKEY_CTX_free(pctx);
+    }
+    if (rsa) {
+        RSA_free(rsa);
+    }
+    if (n_hex) {
+        OPENSSL_free(n_hex);
+    }
+    if (e_hex) {
+        OPENSSL_free(e_hex);
+    }
+    if (d_hex) {
+        OPENSSL_free(d_hex);
+    }
+    if (p_hex) {
+        OPENSSL_free(p_hex);
+    }
+    if (q_hex) {
+        OPENSSL_free(q_hex);
+    }
+    if (dmp1_hex) {
+        OPENSSL_free(dmp1_hex);
+    }
+    if (dmq1_hex) {
+        OPENSSL_free(dmq1_hex);
+    }
+    if (iqmp_hex) {
+        OPENSSL_free(iqmp_hex);
+    }
+
+}
+
+
+void MainWindow::on_pushButton_rsa_prikey_sign_clicked()
+{
+    QString prikeyStr = ui->textEdit_rsa_prikey->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString hashStr = ui->textEdit_rsa_sign_data->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString sigStr = NULL;
+
+    int rsa_key_len = 2048;
+    QByteArray prikeyBytes = QByteArray::fromHex(prikeyStr.toUtf8());
+    QByteArray hashBytes = QByteArray::fromHex(hashStr.toUtf8());
+
+    unsigned char *n_bytes = NULL;
+    unsigned char *d_bytes = NULL;
+
+    RSA *rsa = NULL;
+    BIGNUM *n = NULL;
+    BIGNUM *d = NULL;
+    BIGNUM *e = NULL;
+    EVP_PKEY *pkey = NULL;
+    EVP_PKEY_CTX *pkctx = NULL;
+    size_t sig_len = 0;
+    unsigned char *sig = NULL;
+
+    int e_num = 65537;
+
+
+    n_bytes = (unsigned char *)OPENSSL_malloc(rsa_key_len / 8);
+    if (!n_bytes) {
+        qDebug() << "Failed to allocate memory for n.";
+        goto out;
+    }
+    d_bytes = (unsigned char *)OPENSSL_malloc(rsa_key_len / 8);
+    if (!d_bytes) {
+        qDebug() << "Failed to allocate memory for d.";
+        goto out;
+    }
+
+    memcpy(n_bytes, prikeyBytes.constData(), rsa_key_len / 8);
+    memcpy(d_bytes, prikeyBytes.constData() + rsa_key_len / 8, rsa_key_len / 8);
+
+    rsa = RSA_new();
+    if (!rsa) {
+        qDebug() << "Failed to create RSA.";
+        goto out;
+    }
+
+    n = BN_bin2bn(n_bytes, rsa_key_len / 8, NULL);
+    d = BN_bin2bn(d_bytes, rsa_key_len / 8, NULL);
+    e = BN_bin2bn((const unsigned char *)&e_num, sizeof(int), NULL);
+    if (!n || !d) {
+        qDebug() << "Failed to convert n or d.";
+        goto out;
+    }
+
+    RSA_set0_key(rsa, n, e, d);
+
+    pkey = EVP_PKEY_new();
+    if (!pkey) {
+        qDebug() << "Failed to create EVP_PKEY.";
+        goto out;
+    }
+
+    if (EVP_PKEY_set1_RSA(pkey, rsa) != 1) {
+        qDebug() << "Failed to assign RSA to EVP_PKEY.";
+        goto out;
+    }
+
+    pkctx = EVP_PKEY_CTX_new(pkey, NULL);
+    if (!pkctx) {
+        qDebug() << "Failed to create EVP_PKEY_CTX.";
+        goto out;
+    }
+
+    if (EVP_PKEY_sign_init(pkctx) <= 0) {
+        qDebug() << "Failed to initialize signature.";
+        goto out;
+    }
+
+    if (EVP_PKEY_CTX_set_rsa_padding(pkctx, RSA_PKCS1_PADDING) <= 0) {
+        qDebug() << "Failed to set padding.";
+        goto out;
+    }
+
+    sig_len = RSA_size(rsa);
+    sig = (unsigned char *)OPENSSL_malloc(sig_len);
+    if (!sig) {
+        qDebug() << "Failed to allocate memory for signature.";
+        goto out;
+    }
+
+    if (EVP_PKEY_sign(pkctx, sig, &sig_len, (const unsigned char *)hashBytes.constData(), hashBytes.size()) <= 0) {
+        qDebug() << "Failed to sign hash.";
+        goto out;
+    }
+
+    sigStr = QByteArray(reinterpret_cast<char *>(sig), sig_len).toHex();
+
+    qDebug() << "Signature:" << sigStr;
+
+    ui->textEdit_rsa_sign_value->setText(sigStr);
+
+
+
+
+out:
+    if (n_bytes) {
+        OPENSSL_free(n_bytes);
+    }
+    if (d_bytes) {
+        OPENSSL_free(d_bytes);
+    }
+    if (sig) {
+        OPENSSL_free(sig);
+    }
+    if (pkctx) {
+        EVP_PKEY_CTX_free(pkctx);
+        pkctx = NULL;
+    }
+    if (pkey) {
+        EVP_PKEY_free(pkey);
+        pkey = NULL;
+    }
+    if (rsa) {
+        RSA_free(rsa); // 自动释放 n, e, d
     }
 }
 

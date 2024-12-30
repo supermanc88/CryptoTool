@@ -30,7 +30,7 @@
      <enum>QTabWidget::TabShape::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="tab_sm2">
      <attribute name="title">
@@ -515,9 +515,9 @@
       <property name="geometry">
        <rect>
         <x>300</x>
-        <y>360</y>
+        <y>390</y>
         <width>451</width>
-        <height>161</height>
+        <height>61</height>
        </rect>
       </property>
      </widget>
@@ -538,7 +538,7 @@
       <property name="geometry">
        <rect>
         <x>220</x>
-        <y>430</y>
+        <y>410</y>
         <width>58</width>
         <height>16</height>
        </rect>
@@ -564,7 +564,7 @@
       <property name="geometry">
        <rect>
         <x>220</x>
-        <y>310</y>
+        <y>280</y>
         <width>58</width>
         <height>16</height>
        </rect>
@@ -577,7 +577,7 @@
       <property name="geometry">
        <rect>
         <x>300</x>
-        <y>300</y>
+        <y>270</y>
         <width>451</width>
         <height>41</height>
        </rect>
@@ -656,11 +656,342 @@
        </rect>
       </property>
      </widget>
+     <widget class="QTextEdit" name="textEdit_sm4_aad">
+      <property name="geometry">
+       <rect>
+        <x>300</x>
+        <y>330</y>
+        <width>451</width>
+        <height>41</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_19">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>340</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>AAD</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_sm4_output_tag">
+      <property name="geometry">
+       <rect>
+        <x>300</x>
+        <y>470</y>
+        <width>451</width>
+        <height>61</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_20">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>490</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>TAG</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="tab_rsa">
      <attribute name="title">
       <string>RSA</string>
      </attribute>
+     <widget class="QTextEdit" name="textEdit_rsa_sign_data">
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>240</y>
+        <width>231</width>
+        <height>71</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_21">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>370</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>签名值</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_22">
+      <property name="geometry">
+       <rect>
+        <x>480</x>
+        <y>370</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>解密结果</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_23">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>50</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>公钥</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_24">
+      <property name="geometry">
+       <rect>
+        <x>480</x>
+        <y>250</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>解密原文</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_25">
+      <property name="geometry">
+       <rect>
+        <x>480</x>
+        <y>140</y>
+        <width>51</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>加密结果</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_26">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>470</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>验签结果</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_rsa_pubkey_verify">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>150</y>
+        <width>100</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>公钥验签</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_rsa_tab_clear">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>310</y>
+        <width>100</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>清空</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_rsa_verify_result">
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>440</y>
+        <width>231</width>
+        <height>71</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_rsa_prikey">
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>120</y>
+        <width>231</width>
+        <height>91</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_rsa_encrypt_result">
+      <property name="geometry">
+       <rect>
+        <x>540</x>
+        <y>120</y>
+        <width>231</width>
+        <height>91</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_rsa_prikey_decrypt">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>250</y>
+        <width>100</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>私钥解密</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_rsa_sign_value">
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>340</y>
+        <width>231</width>
+        <height>71</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_rsa_decrypt_plain">
+      <property name="geometry">
+       <rect>
+        <x>540</x>
+        <y>240</y>
+        <width>231</width>
+        <height>71</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_27">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>250</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>签名原文</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_rsa_encrypt_plain">
+      <property name="geometry">
+       <rect>
+        <x>540</x>
+        <y>20</y>
+        <width>231</width>
+        <height>91</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_28">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>150</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>私钥</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_rsa_prikey_sign">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>100</y>
+        <width>100</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>私钥签名</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_rsa_pubkey_encrypt">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>200</y>
+        <width>100</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>公钥加密</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_rsa_pubkey">
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>20</y>
+        <width>231</width>
+        <height>91</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_gen_rsa_keypair">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>50</y>
+        <width>100</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>生成密钥对</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_rsa_decrypt_result">
+      <property name="geometry">
+       <rect>
+        <x>540</x>
+        <y>340</y>
+        <width>231</width>
+        <height>71</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_29">
+      <property name="geometry">
+       <rect>
+        <x>480</x>
+        <y>30</y>
+        <width>51</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>加密原文</string>
+      </property>
+     </widget>
     </widget>
    </widget>
   </widget>
