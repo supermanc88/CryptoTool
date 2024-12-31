@@ -1131,6 +1131,49 @@ void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
     ui->textEdit_rsa_pubkey->setText(rsa_pubkey);
     ui->textEdit_rsa_prikey->setText(rsa_prikey);
 
+    // test RSA encryption and decryption
+    if (0) {
+        QByteArray plaintextBytes = "Hello, World!";
+        QByteArray ciphertextBytes;
+        QByteArray decryptBytes;
+        QString ciphertextStr;
+        QString decryptStr;
+
+        unsigned char *ciphertext = NULL;
+        size_t ciphertext_len = 0;
+        unsigned char *decrypttext = NULL;
+        size_t decrypt_len = 0;
+
+        ciphertext = (unsigned char *)OPENSSL_malloc(RSA_size(rsa));
+        if (!ciphertext) {
+            qDebug() << "Failed to allocate memory for ciphertext.";
+            goto out;
+        }
+
+        decrypttext = (unsigned char *)OPENSSL_malloc(RSA_size(rsa));
+        if (!decrypttext) {
+            qDebug() << "Failed to allocate memory for decrypttext.";
+            goto out;
+        }
+
+        ciphertext_len = 2048 / 8;
+        decrypt_len = 2048 / 8;
+
+        RSA_public_encrypt(plaintextBytes.size(), (const unsigned char *)plaintextBytes.constData(), ciphertext, rsa, RSA_PKCS1_PADDING);
+
+        ciphertextStr = QByteArray(reinterpret_cast<char *>(ciphertext), ciphertext_len).toHex();
+        qDebug() << "Ciphertext:" << ciphertextStr;
+
+        RSA_private_decrypt(decrypt_len, ciphertext, decrypttext, rsa, RSA_PKCS1_PADDING);
+
+        decryptStr = QByteArray(reinterpret_cast<char *>(decrypttext), decrypt_len).toHex();
+        qDebug() << "Decrypt:" << decryptStr;
+        qDebug() << "Decrypt:" << QByteArray::fromHex(decryptStr.toUtf8());
+
+    }
+
+
+
 out:
     if (pkey) {
         EVP_PKEY_free(pkey);
@@ -1173,11 +1216,16 @@ void MainWindow::on_pushButton_rsa_prikey_operation_clicked()
 {
     QString prikeyStr = ui->textEdit_rsa_prikey->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString decryptPlainStr = ui->textEdit_rsa_decrypt_plain->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString eStr = "010001";
     QString decryptResultStr = NULL;
+
+    qDebug() << "Private Key:" << prikeyStr;
+    qDebug() << "decryptPlainStr:" << decryptPlainStr;
 
     int rsa_key_len = 2048;
     QByteArray prikeyBytes = QByteArray::fromHex(prikeyStr.toUtf8());
     QByteArray decryptPlainBytes = QByteArray::fromHex(decryptPlainStr.toUtf8());
+    QByteArray eBytes = QByteArray::fromHex(eStr.toUtf8());
 
     unsigned char *n_bytes = NULL;
     unsigned char *d_bytes = NULL;
@@ -1191,7 +1239,7 @@ void MainWindow::on_pushButton_rsa_prikey_operation_clicked()
     size_t decrypt_len = 0;
     unsigned char *decrypt_result = NULL;
 
-    int e_num = 65537;
+    // int e_num = 65537;
 
 
     n_bytes = (unsigned char *)OPENSSL_malloc(rsa_key_len / 8);
@@ -1216,7 +1264,7 @@ void MainWindow::on_pushButton_rsa_prikey_operation_clicked()
 
     n = BN_bin2bn(n_bytes, rsa_key_len / 8, NULL);
     d = BN_bin2bn(d_bytes, rsa_key_len / 8, NULL);
-    e = BN_bin2bn((const unsigned char *)&e_num, sizeof(int), NULL);
+    e = BN_bin2bn((const unsigned char *)eBytes.constData(), eBytes.size(), NULL);
     if (!n || !d) {
         qDebug() << "Failed to convert n or d.";
         goto out;
@@ -1254,7 +1302,13 @@ void MainWindow::on_pushButton_rsa_prikey_operation_clicked()
         goto out;
     }
 
-    decrypt_len = RSA_size(rsa);
+    if (EVP_PKEY_decrypt(pkctx, NULL, &decrypt_len, (const unsigned char *)decryptPlainBytes.constData(), decryptPlainBytes.size()) <= 0) {
+        qDebug() << "Failed to decrypt.";
+        goto out;
+    }
+
+    qDebug() << "decrypt_len:" << decrypt_len;
+
     decrypt_result = (unsigned char *)OPENSSL_malloc(decrypt_len);
     if (!decrypt_result) {
         qDebug() << "Failed to allocate memory for decrypt_result.";
@@ -1265,6 +1319,8 @@ void MainWindow::on_pushButton_rsa_prikey_operation_clicked()
         qDebug() << "Failed to decrypt.";
         goto out;
     }
+
+    qDebug() << "decrypt_len:" << decrypt_len;
 
     decryptResultStr = QByteArray(reinterpret_cast<char *>(decrypt_result), decrypt_len).toHex();
 
@@ -1300,6 +1356,7 @@ out:
 void MainWindow::on_pushButton_rsa_pubkey_operation_clicked()
 {
     QString pubkeyStr = ui->textEdit_rsa_pubkey->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString privateKeyStr = ui->textEdit_rsa_prikey->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString encryptPlainStr = ui->textEdit_rsa_encrypt_plain->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString encryptResultStr = NULL;
 
@@ -1307,6 +1364,7 @@ void MainWindow::on_pushButton_rsa_pubkey_operation_clicked()
     qDebug() << "encryptPlainStr:" << encryptPlainStr;
 
     QByteArray pubkeyBytes = QByteArray::fromHex(pubkeyStr.toUtf8());
+    QByteArray privateKeyBytes = QByteArray::fromHex(privateKeyStr.toUtf8());
     QByteArray encryptPlainBytes = QByteArray::fromHex(encryptPlainStr.toUtf8());
 
     int rsa_key_len = 2048;
@@ -1318,6 +1376,7 @@ void MainWindow::on_pushButton_rsa_pubkey_operation_clicked()
     RSA *rsa = NULL;
     BIGNUM *n = NULL;
     BIGNUM *e = NULL;
+    BIGNUM *d = NULL;
     EVP_PKEY *pkey = NULL;
     EVP_PKEY_CTX *pkctx = NULL;
     int ret = 0;
@@ -1351,6 +1410,7 @@ void MainWindow::on_pushButton_rsa_pubkey_operation_clicked()
 
     n = BN_bin2bn(n_bytes, rsa_key_len / 8, NULL);
     e = BN_bin2bn(e_bytes, e_len, NULL);
+    d = BN_bin2bn((const unsigned char *)privateKeyBytes.constData() + rsa_key_len / 8, rsa_key_len / 8, NULL);
     if (!n || !e) {
         qDebug() << "Failed to convert n or e.";
         goto out;
@@ -1362,7 +1422,7 @@ void MainWindow::on_pushButton_rsa_pubkey_operation_clicked()
         goto out;
     }
 
-    if (RSA_set0_key(rsa, n, e, NULL) != 1) {
+    if (RSA_set0_key(rsa, n, e, d) != 1) {
         qDebug() << "Failed to set key to RSA.";
         goto out;
     }
@@ -1388,7 +1448,12 @@ void MainWindow::on_pushButton_rsa_pubkey_operation_clicked()
         goto out;
     }
 
-    encrypt_len = RSA_size(rsa);
+    if (EVP_PKEY_encrypt(pkctx, NULL, &encrypt_len, (const unsigned char *)encryptPlainBytes.constData(), encryptPlainBytes.size()) <= 0) {
+        qDebug() << "Failed to encrypt.";
+        goto out;
+    }
+
+    qDebug() << "encrypt_len:" << encrypt_len;
 
     encrypt_result = (unsigned char *)OPENSSL_malloc(encrypt_len);
     if (encrypt_result == NULL) {
@@ -1401,12 +1466,13 @@ void MainWindow::on_pushButton_rsa_pubkey_operation_clicked()
         goto out;
     }
 
+    qDebug() << "encrypt_len:" << encrypt_len;
+
     encryptResultStr = QByteArray(reinterpret_cast<char *>(encrypt_result), encrypt_len).toHex();
 
     qDebug() << "encryptResultStr:" << encryptResultStr;
 
     ui->textEdit_rsa_encrypt_result->setText(encryptResultStr);
-
 
 out:
     if (encrypt_result) {
