@@ -7,6 +7,7 @@
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/rsa.h>
+#include <openssl/dsa.h>
 
 #include <QDebug>
 #include <QRegularExpression>
@@ -1492,6 +1493,305 @@ out:
     }
     if (pkctx) {
         EVP_PKEY_CTX_free(pkctx);
+    }
+}
+
+
+void MainWindow::on_pushButton_gen_dsa_keypair_clicked()
+{
+    EVP_PKEY *pkey_params = NULL;
+    EVP_PKEY *pkey_keygen = NULL;
+    EVP_PKEY_CTX *pctx_params = NULL;
+    EVP_PKEY_CTX *pctx_keygen = NULL;
+    DSA *dsa = NULL;
+    BIGNUM *priv_key = NULL;
+    BIGNUM *pub_key = NULL;
+    BIGNUM *p = NULL;
+    BIGNUM *q = NULL;
+    BIGNUM *g = NULL;
+
+    char *priv_key_hex = NULL;
+    char *pub_key_hex = NULL;
+    char *p_hex = NULL;
+    char *q_hex = NULL;
+    char *g_hex = NULL;
+
+    QString dsa_pubkeyStr = NULL;
+    QString dsa_prikeyStr = NULL;
+    QString dsa_pStr = NULL;
+    QString dsa_qStr = NULL;
+    QString dsa_gStr = NULL;
+
+    size_t dsa_key_len = 2048;
+
+
+    pctx_params = EVP_PKEY_CTX_new_id(EVP_PKEY_DSA, NULL);
+    if (!pctx_params) {
+        qDebug() << "Failed to create EVP_PKEY_CTX.";
+        goto out;
+    }
+
+    if (EVP_PKEY_paramgen_init(pctx_params) <= 0) {
+        qDebug() << "Failed to initialize parameter generation.";
+        goto out;
+    }
+
+    if (EVP_PKEY_CTX_set_dsa_paramgen_bits(pctx_params, dsa_key_len) <= 0) {
+        qDebug() << "Failed to set key length.";
+        goto out;
+    }
+
+    if (EVP_PKEY_paramgen(pctx_params, &pkey_params) <= 0) {
+        qDebug() << "Failed to generate parameters.";
+        goto out;
+    }
+
+    pctx_keygen = EVP_PKEY_CTX_new(pkey_params, NULL);
+    if (!pctx_keygen) {
+        qDebug() << "Failed to create EVP_PKEY_CTX.";
+        goto out;
+    }
+
+    if (EVP_PKEY_keygen_init(pctx_keygen) <= 0) {
+        qDebug() << "Failed to initialize key generation.";
+        goto out;
+    }
+
+    if (EVP_PKEY_keygen(pctx_keygen, &pkey_keygen) <= 0) {
+        qDebug() << "Failed to generate key pair. Error String:" << ERR_error_string(ERR_get_error(), NULL);
+        goto out;
+    }
+
+    qDebug() << "DSA Key Pair Generated.";
+
+    dsa = EVP_PKEY_get1_DSA(pkey_keygen);
+    if (!dsa) {
+        qDebug() << "Failed to get DSA key pair.";
+        goto out;
+    }
+
+    DSA_get0_key(dsa, (const BIGNUM **)&pub_key, (const BIGNUM **)&priv_key);
+    DSA_get0_pqg(dsa, (const BIGNUM **)&p, (const BIGNUM **)&q, (const BIGNUM **)&g);
+
+
+    priv_key_hex = BN_bn2hex(priv_key);
+    if (!priv_key_hex) {
+        qDebug() << "Failed to convert private key to hex.";
+        goto out;
+    }
+
+    pub_key_hex = BN_bn2hex(pub_key);
+    if (!pub_key_hex) {
+        qDebug() << "Failed to convert public key to hex.";
+        goto out;
+    }
+
+    p_hex = BN_bn2hex(p);
+    if (!p_hex) {
+        qDebug() << "Failed to convert p to hex.";
+        goto out;
+    }
+
+    q_hex = BN_bn2hex(q);
+    if (!q_hex) {
+        qDebug() << "Failed to convert q to hex.";
+        goto out;
+    }
+
+    g_hex = BN_bn2hex(g);
+    if (!g_hex) {
+        qDebug() << "Failed to convert g to hex.";
+        goto out;
+    }
+
+    dsa_pubkeyStr = QByteArray(reinterpret_cast<char *>(pub_key_hex), BN_num_bytes(pub_key)).toHex();
+    dsa_prikeyStr = QByteArray(reinterpret_cast<char *>(priv_key_hex), BN_num_bytes(priv_key)).toHex();
+    dsa_pStr = QByteArray(reinterpret_cast<char *>(p_hex), BN_num_bytes(p)).toHex();
+    dsa_qStr = QByteArray(reinterpret_cast<char *>(q_hex), BN_num_bytes(q)).toHex();
+    dsa_gStr = QByteArray(reinterpret_cast<char *>(g_hex), BN_num_bytes(g)).toHex();
+
+    qDebug() << "DSA Public Key:" << dsa_pubkeyStr;
+    qDebug() << "DSA Private Key:" << dsa_prikeyStr;
+    qDebug() << "DSA p:" << dsa_pStr;
+    qDebug() << "DSA q:" << dsa_qStr;
+    qDebug() << "DSA g:" << dsa_gStr;
+
+    ui->textEdit_dsa_pubkey->setText(dsa_pubkeyStr);
+    ui->textEdit_dsa_prikey->setText(dsa_prikeyStr);
+
+out:
+    if (pkey_params) {
+        EVP_PKEY_free(pkey_params);
+    }
+    if (pkey_keygen) {
+        EVP_PKEY_free(pkey_keygen);
+    }
+    if (pctx_params) {
+        EVP_PKEY_CTX_free(pctx_params);
+    }
+    if (pctx_keygen) {
+        EVP_PKEY_CTX_free(pctx_keygen);
+    }
+    if (dsa) {
+        DSA_free(dsa);
+    }
+    if (priv_key_hex) {
+        OPENSSL_free(priv_key_hex);
+    }
+    if (pub_key_hex) {
+        OPENSSL_free(pub_key_hex);
+    }
+    if (p_hex) {
+        OPENSSL_free(p_hex);
+    }
+    if (q_hex) {
+        OPENSSL_free(q_hex);
+    }
+    if (g_hex) {
+        OPENSSL_free(g_hex);
+    }
+}
+
+
+void MainWindow::on_pushButton_dsa_sign_operation_clicked()
+{
+    QString pubkeyStr = ui->textEdit_dsa_pubkey->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString privateKeyStr = ui->textEdit_dsa_prikey->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString signDataStr = ui->textEdit_dsa_sign_data->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString signValueStr = NULL;
+
+    QByteArray pubkeyBytes = QByteArray::fromHex(pubkeyStr.toUtf8());
+    QByteArray privateKeyBytes = QByteArray::fromHex(privateKeyStr.toUtf8());
+    QByteArray signDataBytes = QByteArray::fromHex(signDataStr.toUtf8());
+
+
+    EVP_PKEY_CTX *pctx = NULL;
+    EVP_PKEY_CTX *pctx_params = NULL;
+    EVP_PKEY *pkey = NULL;
+    EVP_PKEY *pkey_params = NULL;
+
+    DSA *dsa = NULL;
+    BIGNUM *priv_key = NULL;
+    BIGNUM *pub_key = NULL;
+
+    unsigned char *sign_value = NULL;
+    size_t sign_len = 0;
+    size_t dsa_key_len = 2048;
+
+    // pctx_params = EVP_PKEY_CTX_new_id(EVP_PKEY_DSA, NULL);
+    // if (!pctx_params) {
+    //     qDebug() << "Failed to create EVP_PKEY_CTX.";
+    //     goto out;
+    // }
+
+    // if (EVP_PKEY_paramgen_init(pctx_params) <= 0) {
+    //     qDebug() << "Failed to initialize parameter generation.";
+    //     goto out;
+    // }
+
+    // if (EVP_PKEY_CTX_set_dsa_paramgen_bits(pctx_params, dsa_key_len) <= 0) {
+    //     qDebug() << "Failed to set key length.";
+    //     goto out;
+    // }
+
+    // if (EVP_PKEY_paramgen(pctx_params, &pkey_params) <= 0) {
+    //     qDebug() << "Failed to generate parameters.";
+    //     goto out;
+    // }
+
+    priv_key = BN_bin2bn((const unsigned char *)privateKeyBytes.constData(), privateKeyBytes.size(), NULL);
+    if (!priv_key) {
+        qDebug() << "Failed to convert private key.";
+        goto out;
+    }
+
+    pub_key = BN_bin2bn((const unsigned char *)pubkeyBytes.constData(), pubkeyBytes.size(), NULL);
+    if (!pub_key) {
+        qDebug() << "Failed to convert public key.";
+        goto out;
+    }
+
+    dsa = DSA_new();
+    if (!dsa) {
+        qDebug() << "Failed to create DSA.";
+        goto out;
+    }
+
+    DSA_set0_key(dsa, pub_key, priv_key);
+
+    pkey = EVP_PKEY_new();
+    if (!pkey) {
+        qDebug() << "Failed to create EVP_PKEY.";
+        goto out;
+    }
+
+    if (EVP_PKEY_set1_DSA(pkey, dsa) != 1) {
+        qDebug() << "Failed to assign DSA to EVP_PKEY.";
+        goto out;
+    }
+
+    pctx = EVP_PKEY_CTX_new(pkey, NULL);
+    if (!pctx) {
+        qDebug() << "Failed to create EVP_PKEY_CTX.";
+        goto out;
+    }
+
+    if (EVP_PKEY_CTX_set_signature_md(pctx, EVP_sha256()) <= 0) {
+        qDebug() << "Failed to set signature hash algorithm.";
+        goto out;
+    }
+
+    if (EVP_PKEY_sign_init(pctx) <= 0) {
+        qDebug() << "Failed to initialize signing.";
+        ERR_print_errors_fp(stderr);
+        goto out;
+    }
+
+    if (EVP_PKEY_sign(pctx, NULL, &sign_len, (const unsigned char *)signDataBytes.constData(), signDataBytes.size()) <= 0) {
+        qDebug() << "Failed to sign.";
+        goto out;
+    }
+
+    qDebug() << "sign_len:" << sign_len;
+
+    sign_value = (unsigned char *)OPENSSL_malloc(sign_len);
+    if (!sign_value) {
+        qDebug() << "Failed to allocate memory for sign_value.";
+        goto out;
+    }
+
+    if (EVP_PKEY_sign(pctx, sign_value, &sign_len, (const unsigned char *)signDataBytes.constData(), signDataBytes.size()) <= 0) {
+        qDebug() << "Failed to sign.";
+        goto out;
+    }
+
+    signValueStr = QByteArray(reinterpret_cast<char *>(sign_value), sign_len).toHex();
+
+    qDebug() << "Sign Value:" << signValueStr;
+
+    ui->textEdit_dsa_sign_result->setText(signValueStr);
+
+
+
+
+out:
+    if (pctx) {
+        EVP_PKEY_CTX_free(pctx);
+    }
+    if (pctx_params) {
+        EVP_PKEY_CTX_free(pctx_params);
+    }
+    if (pkey) {
+        EVP_PKEY_free(pkey);
+    }
+    if (pkey_params) {
+        EVP_PKEY_free(pkey_params);
+    }
+    if (dsa) {
+        DSA_free(dsa);
+    }
+    if (sign_value) {
+        OPENSSL_free(sign_value);
     }
 }
 

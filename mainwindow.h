@@ -45,6 +45,10 @@ private slots:
 
     void on_pushButton_rsa_pubkey_operation_clicked();
 
+    void on_pushButton_gen_dsa_keypair_clicked();
+
+    void on_pushButton_dsa_sign_operation_clicked();
+
 private:
     Ui::MainWindow *ui;
     void generate_sm2_keypair();
