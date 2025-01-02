@@ -2514,3 +2514,100 @@ out:
 
 }
 
+
+void MainWindow::on_pushButton_stream_decrypt_clicked()
+{
+
+    QString streamModeStr = ui->comboBox_stream_mode->currentText();
+    QString keyStr = ui->textEdit_stream_key->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString plaintextStr = ui->textEdit_stream_plain->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString ivStr = ui->textEdit_stream_iv->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+
+    QString ciphertextStr = NULL;
+
+    qDebug() << "Stream Mode:" << streamModeStr;
+    qDebug() << "Key:" << keyStr;
+    qDebug() << "Plaintext:" << plaintextStr;
+    qDebug() << "IV:" << ivStr;
+
+
+    QByteArray keyBytes = QByteArray::fromHex(keyStr.toUtf8());
+    QByteArray plaintextBytes = QByteArray::fromHex(plaintextStr.toUtf8());
+    QByteArray ivBytes = QByteArray::fromHex(ivStr.toUtf8());
+
+    unsigned char *ciphertext = NULL;
+    size_t ciphertext_len = 0;
+
+    unsigned char *iv = NULL;
+    EVP_CIPHER *cipher = NULL;
+
+    if (ivBytes.size() > 0) {
+        iv = (unsigned char *)ivBytes.constData();
+    }
+
+    if (streamModeStr == "rc4") {
+        cipher = (EVP_CIPHER *)EVP_rc4();
+        if (!cipher) {
+            qDebug() << "Failed to create RC4 cipher.";
+            goto out;
+        }
+
+        ciphertext_len = plaintextBytes.size() + EVP_CIPHER_block_size(cipher);
+        ciphertext = (unsigned char *)OPENSSL_malloc(ciphertext_len);
+        if (!ciphertext) {
+            qDebug() << "Failed to allocate memory for ciphertext.";
+            goto out;
+        }
+
+        ciphertext_len = encrypt((const unsigned char *)plaintextBytes.constData(), plaintextBytes.size(), (const unsigned char *)keyBytes.constData(), NULL, ciphertext, cipher);
+        if (ciphertext_len < 0) {
+            qDebug() << "Failed to encrypt.";
+            goto out;
+        }
+
+        ciphertextStr = QByteArray(reinterpret_cast<char *>(ciphertext), ciphertext_len).toHex();
+
+        qDebug() << "Ciphertext:" << ciphertextStr;
+
+        ui->textEdit_stream_result->setText(ciphertextStr);
+    } else if (streamModeStr == "chacha20") {
+        cipher = (EVP_CIPHER *)EVP_chacha20();
+        if (!cipher) {
+            qDebug() << "Failed to create ChaCha20 cipher.";
+            goto out;
+        }
+
+        ciphertext_len = plaintextBytes.size() + EVP_CIPHER_block_size(cipher);
+        ciphertext = (unsigned char *)OPENSSL_malloc(ciphertext_len);
+        if (!ciphertext) {
+            qDebug() << "Failed to allocate memory for ciphertext.";
+            goto out;
+        }
+
+        // ciphertext_len = encrypt((const unsigned char *)plaintextBytes.constData(), plaintextBytes.size(), (const unsigned char *)keyBytes.constData(), iv, ciphertext, cipher);
+        // if (ciphertext_len < 0) {
+        //     qDebug() << "Failed to encrypt.";
+        //     goto out;
+        // }
+        ciphertext_len = decrypt((const unsigned char *)plaintextBytes.constData(), plaintextBytes.size(), (const unsigned char *)keyBytes.constData(), iv, ciphertext, cipher);
+        if (ciphertext_len < 0) {
+            qDebug() << "Failed to decrypt.";
+            goto out;
+        }
+
+        ciphertextStr = QByteArray(reinterpret_cast<char *>(ciphertext), ciphertext_len).toHex();
+
+        qDebug() << "Ciphertext:" << ciphertextStr;
+
+        ui->textEdit_stream_result->setText(ciphertextStr);
+    } else {
+        qDebug() << "Unsupported stream mode.";
+    }
+
+out:
+    if (ciphertext) {
+        OPENSSL_free(ciphertext);
+    }
+
+}
+

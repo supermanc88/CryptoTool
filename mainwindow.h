@@ -59,6 +59,8 @@ private slots:
 
     void on_pushButton_stream_encrypt_clicked();
 
+    void on_pushButton_stream_decrypt_clicked();
+
 private:
     Ui::MainWindow *ui;
     void generate_sm2_keypair();
