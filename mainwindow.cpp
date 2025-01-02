@@ -2347,6 +2347,82 @@ void MainWindow::on_comboBox_mac_mode_currentIndexChanged(int index)
 }
 
 
+// 加密函数
+int encrypt(const unsigned char *plaintext, int plaintext_len, const unsigned char *key, const unsigned char *iv, unsigned char *ciphertext, const EVP_CIPHER *cipher) {
+    int len;
+    int ciphertext_len;
+    EVP_CIPHER_CTX *ctx;
+
+    // 创建并初始化上下文
+    if (!(ctx = EVP_CIPHER_CTX_new())) {
+        qDebug() << "EVP_CIPHER_CTX_new failed. Error String:" << ERR_error_string(ERR_get_error(), NULL);
+        return -1;
+    }
+
+    // 初始化加密操作
+    if (1 != EVP_EncryptInit_ex(ctx, cipher, NULL, key, iv)) {
+        qDebug() << "EVP_EncryptInit_ex failed. Error String:" << ERR_error_string(ERR_get_error(), NULL);
+        return -1;
+    }
+
+    // 执行加密
+    if (1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len)) {
+        qDebug() << "EVP_EncryptUpdate failed. Error String:" << ERR_error_string(ERR_get_error(), NULL);
+        return -1;
+    }
+    ciphertext_len = len;
+
+    // 结束加密
+    if (1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len)) {
+        qDebug() << "EVP_EncryptFinal_ex failed. Error String:" << ERR_error_string(ERR_get_error(), NULL);
+        return -1;
+    }
+    ciphertext_len += len;
+
+    // 释放上下文
+    EVP_CIPHER_CTX_free(ctx);
+
+    return ciphertext_len;
+}
+
+// 解密函数
+int decrypt(const unsigned char *ciphertext, int ciphertext_len, const unsigned char *key, const unsigned char *iv, unsigned char *plaintext, const EVP_CIPHER *cipher) {
+    int len;
+    int plaintext_len;
+    EVP_CIPHER_CTX *ctx;
+
+    // 创建并初始化上下文
+    if (!(ctx = EVP_CIPHER_CTX_new())) {
+        qDebug() << "EVP_CIPHER_CTX_new failed. Error String:" << ERR_error_string(ERR_get_error(), NULL);
+        return -1;
+    }
+
+    // 初始化解密操作
+    if (1 != EVP_DecryptInit_ex(ctx, cipher, NULL, key, iv)) {
+        qDebug() << "EVP_DecryptInit_ex failed. Error String:" << ERR_error_string(ERR_get_error(), NULL);
+        return -1;
+    }
+
+    // 执行解密
+    if (1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len)) {
+        qDebug() << "EVP_DecryptUpdate failed. Error String:" << ERR_error_string(ERR_get_error(), NULL);
+        return -1;
+    }
+    plaintext_len = len;
+
+    // 结束解密
+    if (1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) {
+        qDebug() << "EVP_DecryptFinal_ex failed. Error String:" << ERR_error_string(ERR_get_error(), NULL);
+        return -1;
+    }
+    plaintext_len += len;
+
+    // 释放上下文
+    EVP_CIPHER_CTX_free(ctx);
+
+    return plaintext_len;
+}
+
 
 void MainWindow::on_pushButton_stream_encrypt_clicked()
 {
@@ -2371,66 +2447,70 @@ void MainWindow::on_pushButton_stream_encrypt_clicked()
     size_t ciphertext_len = 0;
 
     unsigned char *iv = NULL;
+    EVP_CIPHER *cipher = NULL;
 
     if (ivBytes.size() > 0) {
         iv = (unsigned char *)ivBytes.constData();
     }
 
-    EVP_CIPHER_CTX *ctx = NULL;
-
-    ctx = EVP_CIPHER_CTX_new();
-    if (!ctx) {
-        qDebug() << "Failed to create EVP_CIPHER_CTX.";
-        goto out;
-    }
-
     if (streamModeStr == "rc4") {
-        if (EVP_EncryptInit(ctx, EVP_rc4(), (const unsigned char *)keyBytes.constData(), iv) <= 0) {
-            qDebug() << "Failed to initialize RC4.";
+        cipher = (EVP_CIPHER *)EVP_rc4();
+        if (!cipher) {
+            qDebug() << "Failed to create RC4 cipher.";
             goto out;
         }
+
+        ciphertext_len = plaintextBytes.size() + EVP_CIPHER_block_size(cipher);
+        ciphertext = (unsigned char *)OPENSSL_malloc(ciphertext_len);
+        if (!ciphertext) {
+            qDebug() << "Failed to allocate memory for ciphertext.";
+            goto out;
+        }
+
+        ciphertext_len = encrypt((const unsigned char *)plaintextBytes.constData(), plaintextBytes.size(), (const unsigned char *)keyBytes.constData(), NULL, ciphertext, cipher);
+        if (ciphertext_len < 0) {
+            qDebug() << "Failed to encrypt.";
+            goto out;
+        }
+
+        ciphertextStr = QByteArray(reinterpret_cast<char *>(ciphertext), ciphertext_len).toHex();
+
+        qDebug() << "Ciphertext:" << ciphertextStr;
+
+        ui->textEdit_stream_result->setText(ciphertextStr);
     } else if (streamModeStr == "chacha20") {
-        if (EVP_EncryptInit(ctx, EVP_chacha20(), (const unsigned char *)keyBytes.constData(), iv) <= 0) {
-            qDebug() << "Failed to initialize ChaCha20.";
+        cipher = (EVP_CIPHER *)EVP_chacha20();
+        if (!cipher) {
+            qDebug() << "Failed to create ChaCha20 cipher.";
             goto out;
         }
+
+        ciphertext_len = plaintextBytes.size() + EVP_CIPHER_block_size(cipher);
+        ciphertext = (unsigned char *)OPENSSL_malloc(ciphertext_len);
+        if (!ciphertext) {
+            qDebug() << "Failed to allocate memory for ciphertext.";
+            goto out;
+        }
+
+        ciphertext_len = encrypt((const unsigned char *)plaintextBytes.constData(), plaintextBytes.size(), (const unsigned char *)keyBytes.constData(), iv, ciphertext, cipher);
+        if (ciphertext_len < 0) {
+            qDebug() << "Failed to encrypt.";
+            goto out;
+        }
+
+        ciphertextStr = QByteArray(reinterpret_cast<char *>(ciphertext), ciphertext_len).toHex();
+
+        qDebug() << "Ciphertext:" << ciphertextStr;
+
+        ui->textEdit_stream_result->setText(ciphertextStr);
     } else {
         qDebug() << "Unsupported stream mode.";
-        goto out;
     }
-
-    ciphertext_len = plaintextBytes.size() + EVP_CIPHER_CTX_block_size(ctx);
-    ciphertext = (unsigned char *)OPENSSL_malloc(ciphertext_len);
-    if (!ciphertext) {
-        qDebug() << "Failed to allocate memory for ciphertext.";
-        goto out;
-    }
-
-    if (EVP_EncryptUpdate(ctx, ciphertext, (int *)&ciphertext_len, (const unsigned char *)plaintextBytes.constData(), plaintextBytes.size()) <= 0) {
-        qDebug() << "Failed to encrypt.";
-        goto out;
-    }
-
-    if (EVP_EncryptFinal(ctx, ciphertext + ciphertext_len, (int *)&ciphertext_len) <= 0) {
-        qDebug() << "Failed to finalize encryption.";
-        goto out;
-    }
-
-    qDebug() << "Ciphertext Length:" << ciphertext_len;
-
-    // ciphertext_len += EVP_CIPHER_CTX_block_size(ctx);
-    ciphertextStr = QByteArray(reinterpret_cast<char *>(ciphertext), ciphertext_len).toHex();
-
-    qDebug() << "Ciphertext:" << ciphertextStr;
-
-    ui->textEdit_stream_result->setText(ciphertextStr);
 
 out:
     if (ciphertext) {
         OPENSSL_free(ciphertext);
     }
-    if (ctx) {
-        EVP_CIPHER_CTX_free(ctx);
-    }
+
 }
 
