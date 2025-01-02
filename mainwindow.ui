@@ -1060,7 +1060,7 @@
       <property name="geometry">
        <rect>
         <x>160</x>
-        <y>260</y>
+        <y>490</y>
         <width>58</width>
         <height>16</height>
        </rect>
@@ -1069,11 +1069,11 @@
        <string>摘要算法</string>
       </property>
      </widget>
-     <widget class="QComboBox" name="comboBox">
+     <widget class="QComboBox" name="comboBox_dsa_digest_mode">
       <property name="geometry">
        <rect>
         <x>220</x>
-        <y>260</y>
+        <y>490</y>
         <width>231</width>
         <height>32</height>
        </rect>
@@ -1090,6 +1090,11 @@
       </item>
       <item>
        <property name="text">
+        <string>sha224</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
         <string>sha384</string>
        </property>
       </item>
@@ -1098,6 +1103,75 @@
         <string>sha512</string>
        </property>
       </item>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_dsa_params_p">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>220</y>
+        <width>231</width>
+        <height>61</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_34">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>240</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>p</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_35">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>320</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>q</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_dsa_params_q">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>300</y>
+        <width>231</width>
+        <height>61</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_36">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>400</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>g</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_dsa_params_g">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>380</y>
+        <width>231</width>
+        <height>61</height>
+       </rect>
+      </property>
      </widget>
     </widget>
    </widget>
