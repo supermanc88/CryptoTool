@@ -51,6 +51,8 @@ private slots:
 
     void on_pushButton_dsa_verify_operation_clicked();
 
+    void on_pushButton_digest_calculate_clicked();
+
 private:
     Ui::MainWindow *ui;
     void generate_sm2_keypair();

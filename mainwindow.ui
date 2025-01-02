@@ -30,7 +30,7 @@
      <enum>QTabWidget::TabShape::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>4</number>
+     <number>5</number>
     </property>
     <widget class="QWidget" name="tab_sm2">
      <attribute name="title">
@@ -1172,6 +1172,188 @@
         <height>61</height>
        </rect>
       </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_digest">
+     <attribute name="title">
+      <string>digest</string>
+     </attribute>
+     <widget class="QPushButton" name="pushButton_digest_calculate">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>110</y>
+        <width>100</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>计算摘要</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_37">
+      <property name="geometry">
+       <rect>
+        <x>470</x>
+        <y>180</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>摘要</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_digest_result">
+      <property name="geometry">
+       <rect>
+        <x>530</x>
+        <y>150</y>
+        <width>231</width>
+        <height>91</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_38">
+      <property name="geometry">
+       <rect>
+        <x>470</x>
+        <y>80</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>原文</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_digest_plain">
+      <property name="geometry">
+       <rect>
+        <x>530</x>
+        <y>50</y>
+        <width>231</width>
+        <height>91</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_39">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>120</y>
+        <width>58</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>摘要算法</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="comboBox_digest_mode">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>120</y>
+        <width>231</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <item>
+       <property name="text">
+        <string>md4</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>md5</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>mdc2</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha1</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha224</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha256</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha3-224</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha3-256</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha3-384</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha3-512</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha384</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha512</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha512-224</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sha512-256</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sm3</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>blake2b512</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>blake2s256</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>shake128</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>shake256</string>
+       </property>
+      </item>
      </widget>
     </widget>
    </widget>

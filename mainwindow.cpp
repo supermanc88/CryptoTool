@@ -2077,3 +2077,123 @@ out:
     }
 }
 
+
+void MainWindow::on_pushButton_digest_calculate_clicked()
+{
+    QString digestModeStr = ui->comboBox_digest_mode->currentText();
+    QString dataStr = ui->textEdit_digest_plain->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString digestStr = NULL;
+
+    qDebug() << "Digest Mode:" << digestModeStr;
+    qDebug() << "Data:" << dataStr;
+
+    QByteArray dataBytes = QByteArray::fromHex(dataStr.toUtf8());
+
+    EVP_MD_CTX *mdctx = NULL;
+    EVP_MD *md = NULL;
+
+    unsigned char *digest = NULL;
+    size_t digest_len = 0;
+
+    // md4 md5 mdc2
+    // sha1 sha224 sha256 sha3-224 sha3-256 sha3-384 sha3-512 sha384 sha512 sha512-224 sha512-256
+    // sm3
+    // blake2b512 blake2s256
+    // shake128 shake256
+
+    if (digestModeStr == "md4") {
+        md = (EVP_MD *)EVP_md4();
+        ui->textEdit_digest_result->setText("Unsupported digest mode.");
+    } else if (digestModeStr == "md5") {
+        md = (EVP_MD *)EVP_md5();
+    } else if (digestModeStr == "mdc2") {
+        md = (EVP_MD *)EVP_mdc2();
+        ui->textEdit_digest_result->setText("Unsupported digest mode.");
+    } else if (digestModeStr == "sha1") {
+        md = (EVP_MD *)EVP_sha1();
+    } else if (digestModeStr == "sha224") {
+        md = (EVP_MD *)EVP_sha224();
+    } else if (digestModeStr == "sha256") {
+        md = (EVP_MD *)EVP_sha256();
+    } else if (digestModeStr == "sha3-224") {
+        md = (EVP_MD *)EVP_sha3_224();
+    } else if (digestModeStr == "sha3-256") {
+        md = (EVP_MD *)EVP_sha3_256();
+    } else if (digestModeStr == "sha3-384") {
+        md = (EVP_MD *)EVP_sha3_384();
+    } else if (digestModeStr == "sha3-512") {
+        md = (EVP_MD *)EVP_sha3_512();
+    } else if (digestModeStr == "sha384") {
+        md = (EVP_MD *)EVP_sha384();
+    } else if (digestModeStr == "sha512") {
+        md = (EVP_MD *)EVP_sha512();
+    } else if (digestModeStr == "sha512-224") {
+        md = (EVP_MD *)EVP_sha512_224();
+    } else if (digestModeStr == "sha512-256") {
+        md = (EVP_MD *)EVP_sha512_256();
+    } else if (digestModeStr == "sm3") {
+        md = (EVP_MD *)EVP_sm3();
+    } else if (digestModeStr == "blake2b512") {
+        md = (EVP_MD *)EVP_blake2b512();
+    } else if (digestModeStr == "blake2s256") {
+        md = (EVP_MD *)EVP_blake2s256();
+    } else if (digestModeStr == "shake128") {
+        md = (EVP_MD *)EVP_shake128();
+    } else if (digestModeStr == "shake256") {
+        md = (EVP_MD *)EVP_shake256();
+    } else {
+        qDebug() << "Unsupported digest mode.";
+        goto out;
+    }
+
+    mdctx = EVP_MD_CTX_new();
+    if (!mdctx) {
+        qDebug() << "Failed to create EVP_MD_CTX.";
+        goto out;
+    }
+
+    if (EVP_DigestInit(mdctx, md) <= 0) {
+        qDebug() << "Failed to initialize digest. Error String:" << ERR_error_string(ERR_get_error(), NULL);
+        goto out;
+    }
+
+    if (EVP_DigestUpdate(mdctx, (const unsigned char *)dataBytes.constData(), dataBytes.size()) <= 0) {
+        qDebug() << "Failed to update digest.";
+        goto out;
+    }
+
+    digest_len = 1024;
+    digest = (unsigned char *)OPENSSL_malloc(digest_len);
+    if (!digest) {
+        qDebug() << "Failed to allocate memory for digest.";
+        goto out;
+    }
+
+    if (digestModeStr == "shake128" || digestModeStr == "shake256") {
+        if (EVP_DigestFinalXOF(mdctx, digest, (unsigned int)digest_len) <= 0) {
+            qDebug() << "Failed to get digest length.";
+            goto out;
+        }
+    } else {
+        if (EVP_DigestFinal(mdctx, digest, (unsigned int *)&digest_len) <= 0) {
+            qDebug() << "Failed to get digest length.";
+            goto out;
+        }
+    }
+
+    digestStr = QByteArray(reinterpret_cast<char *>(digest), digest_len).toHex();
+
+    qDebug() << "Digest:" << digestStr;
+
+    ui->textEdit_digest_result->setText(digestStr);
+
+out:
+    if (mdctx) {
+        EVP_MD_CTX_free(mdctx);
+    }
+    if (digest) {
+        OPENSSL_free(digest);
+    }
+
+}
+
