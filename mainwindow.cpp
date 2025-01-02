@@ -19,6 +19,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->setupUi(this);
 
+    on_comboBox_mac_mode_currentIndexChanged(0);
+
 }
 
 MainWindow::~MainWindow()
@@ -2195,5 +2197,240 @@ out:
         OPENSSL_free(digest);
     }
 
+}
+
+
+void MainWindow::on_pushButton_mac_calculate_clicked()
+{
+    QString macModeStr = ui->comboBox_mac_mode->currentText();
+    QString macInternalModeStr = ui->comboBox_mac_internal_mode->currentText();
+    QString keyStr = ui->textEdit_mac_key->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString dataStr = ui->textEdit_mac_plain->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString macStr = NULL;
+
+    qDebug() << "MAC Mode:" << macModeStr;
+    qDebug() << "MAC Internal Mode:" << macInternalModeStr;
+    qDebug() << "Key:" << keyStr;
+    qDebug() << "Data:" << dataStr;
+
+    QByteArray keyBytes = QByteArray::fromHex(keyStr.toUtf8());
+    QByteArray dataBytes = QByteArray::fromHex(dataStr.toUtf8());
+
+    EVP_MAC *mac = NULL;
+    EVP_MAC_CTX *mctx = NULL;
+    OSSL_PARAM params[2] = {OSSL_PARAM_END, OSSL_PARAM_END};
+
+    unsigned char *mac_value = NULL;
+    size_t mac_len = 0;
+
+    char *digestOrCipher = NULL;
+
+    digestOrCipher = (char *)macInternalModeStr.toStdString().c_str();
+
+    qDebug() << "digestOrCipher:" << digestOrCipher;
+
+    if (macModeStr == "HMAC") {
+        mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
+        params[0] = OSSL_PARAM_construct_utf8_string("digest", digestOrCipher, 0);
+    } else if (macModeStr == "CMAC") {
+        mac = EVP_MAC_fetch(NULL, "CMAC", NULL);
+        params[0] = OSSL_PARAM_construct_utf8_string("cipher", digestOrCipher, 0);
+    } else if (macModeStr == "GMAC") {
+        mac = EVP_MAC_fetch(NULL, "GMAC", NULL);
+        params[0] = OSSL_PARAM_construct_utf8_string("cipher", digestOrCipher, 0);
+    } else {
+        qDebug() << "Unsupported MAC mode.";
+        goto out;
+    }
+
+    if (!mac) {
+        qDebug() << "Failed to fetch MAC.";
+        ui->textEdit_mac_result->setText("Failed to fetch MAC.");
+        goto out;
+    }
+
+    mctx = EVP_MAC_CTX_new(mac);
+    if (!mctx) {
+        qDebug() << "Failed to create MAC context.";
+        ui->textEdit_mac_result->setText("Failed to create MAC context.");
+        goto out;
+    }
+
+    if (EVP_MAC_init(mctx, (const unsigned char *)keyBytes.constData(), keyBytes.size(), params) <= 0) {
+        qDebug() << "Failed to initialize MAC.";
+        ui->textEdit_mac_result->setText("Failed to initialize MAC.");
+        goto out;
+    }
+
+    if (EVP_MAC_update(mctx, (const unsigned char *)dataBytes.constData(), dataBytes.size()) <= 0) {
+        qDebug() << "Failed to update MAC.";
+        ui->textEdit_mac_result->setText("Failed to update MAC.");
+        goto out;
+    }
+
+    mac_len = 1024;
+    mac_value = (unsigned char *)OPENSSL_malloc(mac_len);
+    if (!mac_value) {
+        qDebug() << "Failed to allocate memory for MAC.";
+        ui->textEdit_mac_result->setText("Failed to allocate memory for MAC.");
+        goto out;
+    }
+
+    if (EVP_MAC_final(mctx, mac_value, &mac_len, mac_len) <= 0) {
+        qDebug() << "Failed to get MAC.";
+        ui->textEdit_mac_result->setText("Failed to get MAC.");
+        goto out;
+    }
+
+    macStr = QByteArray(reinterpret_cast<char *>(mac_value), mac_len).toHex();
+
+    qDebug() << "MAC:" << macStr;
+
+    ui->textEdit_mac_result->setText(macStr);
+
+
+
+out:
+    if (mac) {
+        EVP_MAC_free(mac);
+    }
+    if (mctx) {
+        EVP_MAC_CTX_free(mctx);
+    }
+    if (mac_value) {
+        OPENSSL_free(mac_value);
+    }
+}
+
+
+void MainWindow::on_comboBox_mac_mode_currentIndexChanged(int index)
+{
+    QString macModeStr = ui->comboBox_mac_mode->currentText();
+
+    char *hmacInternalMode[] = {
+        "SHA1", "SHA224", "SHA256", "SHA384", "SHA512", "SHA512-224", "SHA512-256",
+        "SHA3-224", "SHA3-256", "SHA3-384", "SHA3-512",
+        "BLAKE2B-512", "BLAKE2S-256",
+        "SM3",
+        "SHAKE128", "SHAKE256"
+    };
+
+    char *cmacInternalMode[] = {
+        "AES-128-CBC", "AES-192-CBC", "AES-256-CBC",
+        "DES-EDE3-CBC", "DES-CBC",
+        "SM4-CBC"
+    };
+
+    char *gmacInternalMode[] = {
+        "AES-128-GCM", "AES-192-GCM", "AES-256-GCM",
+        "SM4-GCM"
+    };
+
+    if (macModeStr == "HMAC") {
+        ui->comboBox_mac_internal_mode->clear();
+        for (int i = 0; i < sizeof(hmacInternalMode) / sizeof(hmacInternalMode[0]); i++) {
+            ui->comboBox_mac_internal_mode->addItem(hmacInternalMode[i]);
+        }
+    } else if (macModeStr == "CMAC") {
+        ui->comboBox_mac_internal_mode->clear();
+        for (int i = 0; i < sizeof(cmacInternalMode) / sizeof(cmacInternalMode[0]); i++) {
+            ui->comboBox_mac_internal_mode->addItem(cmacInternalMode[i]);
+        }
+    } else if (macModeStr == "GMAC") {
+        ui->comboBox_mac_internal_mode->clear();
+        for (int i = 0; i < sizeof(gmacInternalMode) / sizeof(gmacInternalMode[0]); i++) {
+            ui->comboBox_mac_internal_mode->addItem(gmacInternalMode[i]);
+        }
+    } else {
+        ui->textEdit_mac_key->setPlaceholderText("Key");
+    }
+}
+
+
+
+void MainWindow::on_pushButton_stream_encrypt_clicked()
+{
+    QString streamModeStr = ui->comboBox_stream_mode->currentText();
+    QString keyStr = ui->textEdit_stream_key->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString plaintextStr = ui->textEdit_stream_plain->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString ivStr = ui->textEdit_stream_iv->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+
+    QString ciphertextStr = NULL;
+
+    qDebug() << "Stream Mode:" << streamModeStr;
+    qDebug() << "Key:" << keyStr;
+    qDebug() << "Plaintext:" << plaintextStr;
+    qDebug() << "IV:" << ivStr;
+
+
+    QByteArray keyBytes = QByteArray::fromHex(keyStr.toUtf8());
+    QByteArray plaintextBytes = QByteArray::fromHex(plaintextStr.toUtf8());
+    QByteArray ivBytes = QByteArray::fromHex(ivStr.toUtf8());
+
+    unsigned char *ciphertext = NULL;
+    size_t ciphertext_len = 0;
+
+    unsigned char *iv = NULL;
+
+    if (ivBytes.size() > 0) {
+        iv = (unsigned char *)ivBytes.constData();
+    }
+
+    EVP_CIPHER_CTX *ctx = NULL;
+
+    ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        qDebug() << "Failed to create EVP_CIPHER_CTX.";
+        goto out;
+    }
+
+    if (streamModeStr == "rc4") {
+        if (EVP_EncryptInit(ctx, EVP_rc4(), (const unsigned char *)keyBytes.constData(), iv) <= 0) {
+            qDebug() << "Failed to initialize RC4.";
+            goto out;
+        }
+    } else if (streamModeStr == "chacha20") {
+        if (EVP_EncryptInit(ctx, EVP_chacha20(), (const unsigned char *)keyBytes.constData(), iv) <= 0) {
+            qDebug() << "Failed to initialize ChaCha20.";
+            goto out;
+        }
+    } else {
+        qDebug() << "Unsupported stream mode.";
+        goto out;
+    }
+
+    ciphertext_len = plaintextBytes.size() + EVP_CIPHER_CTX_block_size(ctx);
+    ciphertext = (unsigned char *)OPENSSL_malloc(ciphertext_len);
+    if (!ciphertext) {
+        qDebug() << "Failed to allocate memory for ciphertext.";
+        goto out;
+    }
+
+    if (EVP_EncryptUpdate(ctx, ciphertext, (int *)&ciphertext_len, (const unsigned char *)plaintextBytes.constData(), plaintextBytes.size()) <= 0) {
+        qDebug() << "Failed to encrypt.";
+        goto out;
+    }
+
+    if (EVP_EncryptFinal(ctx, ciphertext + ciphertext_len, (int *)&ciphertext_len) <= 0) {
+        qDebug() << "Failed to finalize encryption.";
+        goto out;
+    }
+
+    qDebug() << "Ciphertext Length:" << ciphertext_len;
+
+    // ciphertext_len += EVP_CIPHER_CTX_block_size(ctx);
+    ciphertextStr = QByteArray(reinterpret_cast<char *>(ciphertext), ciphertext_len).toHex();
+
+    qDebug() << "Ciphertext:" << ciphertextStr;
+
+    ui->textEdit_stream_result->setText(ciphertextStr);
+
+out:
+    if (ciphertext) {
+        OPENSSL_free(ciphertext);
+    }
+    if (ctx) {
+        EVP_CIPHER_CTX_free(ctx);
+    }
 }
 

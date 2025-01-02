@@ -53,6 +53,12 @@ private slots:
 
     void on_pushButton_digest_calculate_clicked();
 
+    void on_pushButton_mac_calculate_clicked();
+
+    void on_comboBox_mac_mode_currentIndexChanged(int index);
+
+    void on_pushButton_stream_encrypt_clicked();
+
 private:
     Ui::MainWindow *ui;
     void generate_sm2_keypair();
