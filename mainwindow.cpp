@@ -2611,3 +2611,326 @@ out:
 
 }
 
+
+void MainWindow::on_pushButton_sm2_gen_pub_key_with_pri_key_clicked()
+{
+    QString priKeyStr = ui->textEdit_sm2_prikey->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString pubKeyStr = NULL;
+
+    qDebug() << "Private Key:" << priKeyStr;
+
+    QByteArray priKeyBytes = QByteArray::fromHex(priKeyStr.toUtf8());
+
+    EC_KEY *ec_key = NULL;
+    BIGNUM *pri_key = NULL;
+    EC_POINT *pub_key = NULL;
+    const EC_GROUP *group = NULL;
+
+    ec_key = EC_KEY_new_by_curve_name(NID_sm2);
+    if (!ec_key) {
+        qDebug() << "Failed to create EC_KEY.";
+        goto out;
+    }
+
+    group = EC_KEY_get0_group(ec_key);
+    if (!group) {
+        qDebug() << "Failed to get EC_GROUP.";
+        goto out;
+    }
+
+    pri_key = BN_bin2bn((const unsigned char *)priKeyBytes.constData(), priKeyBytes.size(), NULL);
+    if (!pri_key) {
+        qDebug() << "Failed to convert private key.";
+        goto out;
+    }
+
+    if (EC_KEY_set_private_key(ec_key, pri_key) != 1) {
+        qDebug() << "Failed to set private key.";
+        goto out;
+    }
+
+    pub_key = EC_POINT_new(group);
+    if (!pub_key) {
+        qDebug() << "Failed to create EC_POINT.";
+        goto out;
+    }
+
+    if (EC_POINT_mul(group, pub_key, pri_key, NULL, NULL, NULL) != 1) {
+        qDebug() << "Failed to calculate public key.";
+        goto out;
+    }
+
+    if (EC_KEY_set_public_key(ec_key, pub_key) != 1) {
+        qDebug() << "Failed to set public key.";
+        goto out;
+    }
+
+    pubKeyStr = EC_POINT_point2hex(group, pub_key, POINT_CONVERSION_UNCOMPRESSED, NULL);
+
+    qDebug() << "Public Key:" << pubKeyStr;
+
+    ui->textEdit_sm2_pubkey->setText(pubKeyStr);
+
+
+out:
+    if (ec_key) {
+        EC_KEY_free(ec_key);
+    }
+    if (pri_key) {
+        BN_free(pri_key);
+    }
+    if (pub_key) {
+        EC_POINT_free(pub_key);
+    }
+}
+
+
+void MainWindow::on_pushButton_caculator_xor_clicked()
+{
+    QString xorInputStr1 = ui->textEdit_other_tool_input1->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString xorInputStr2 = ui->textEdit_other_tool_input2->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+
+    QString xorOutputStr = NULL;
+
+    qDebug() << "XOR Input1:" << xorInputStr1;
+    qDebug() << "XOR Input2:" << xorInputStr2;
+
+    int i = 0;
+
+    unsigned char *byte_input1 = NULL;
+    unsigned char *byte_input2 = NULL;
+    unsigned char *byte_output = NULL;
+
+    QByteArray xorInputBytes1 = QByteArray::fromHex(xorInputStr1.toUtf8());
+    QByteArray xorInputBytes2 = QByteArray::fromHex(xorInputStr2.toUtf8());
+
+    if (xorInputBytes1.size() != xorInputBytes2.size()) {
+        qDebug() << "Input size not equal.";
+        goto out;
+    }
+
+    byte_input1 = (unsigned char *)xorInputBytes1.constData();
+    byte_input2 = (unsigned char *)xorInputBytes2.constData();
+
+    byte_output = (unsigned char *)OPENSSL_malloc(xorInputBytes1.size());
+    if (!byte_output) {
+        qDebug() << "Failed to allocate memory for output.";
+        goto out;
+    }
+
+    for (i = 0; i < xorInputBytes1.size(); i++) {
+        byte_output[i] = byte_input1[i] ^ byte_input2[i];
+    }
+
+    xorOutputStr = QByteArray(reinterpret_cast<char *>(byte_output), xorInputBytes1.size()).toHex();
+    qDebug() << "XOR Output:" << xorOutputStr;
+
+    ui->textEdit_other_tool_result->setText(xorOutputStr);
+
+out:
+
+    if (byte_output) {
+        OPENSSL_free(byte_output);
+    }
+}
+
+
+void MainWindow::on_pushButton_sm4_decrypt_clicked()
+{
+    QString keyStr = ui->textEdit_sm4_key->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString ciphertextStr = ui->textEdit_sm4_input->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString ivStr = ui->textEdit_sm4_iv->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString aadStr = ui->textEdit_sm4_aad->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString modeStr = ui->comboBox_sm4_mode->currentText();
+
+    qDebug() << "Key:" << keyStr;
+    qDebug() << "Plaintext:" << ciphertextStr;
+    qDebug() << "IV:" << ivStr;
+    qDebug() << "AAD:" << aadStr;
+    qDebug() << "Mode:" << modeStr;
+
+    QString plaintextStr = NULL;
+
+    EVP_CIPHER_CTX *ctx = NULL;
+    EVP_CIPHER *cipher = NULL;
+
+    QByteArray keyBytes = QByteArray::fromHex(keyStr.toUtf8());
+    QByteArray ciphertextBytes = QByteArray::fromHex(ciphertextStr.toUtf8());
+    QByteArray ivBytes = QByteArray::fromHex(ivStr.toUtf8());
+    QByteArray aadBytes = QByteArray::fromHex(aadStr.toUtf8());
+
+
+    unsigned char *plaintext = NULL;
+    size_t plaintext_len = 0;
+    size_t tmp_len = 0;
+    unsigned char tag[16];
+
+    EVP_CIPHER *other_cipher = NULL;
+
+    plaintext = (unsigned char *)OPENSSL_malloc(ciphertextBytes.size());
+    if (!plaintext) {
+        qDebug() << "Failed to allocate memory for plaintext.";
+        goto out;
+    }
+
+    ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        qDebug() << "Failed to create EVP_CIPHER_CTX.";
+        goto out;
+    }
+
+    if (modeStr == "ECB") {
+        if (EVP_CipherInit(ctx, EVP_sm4_ecb(), (const unsigned char *)keyBytes.constData(), NULL, 0) != 1) {
+            qDebug() << "Failed to set key.";
+            goto out;
+        }
+    } else if (modeStr == "CBC") {
+        if (EVP_CipherInit(ctx, EVP_sm4_cbc(), (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 0) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+    } else if (modeStr == "CFB") {
+        if (EVP_CipherInit(ctx, EVP_sm4_cfb(), (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 0) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+    } else if (modeStr == "OFB") {
+        if (EVP_CipherInit(ctx, EVP_sm4_ofb(), (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 0) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+    } else if (modeStr == "CTR") {
+        if (EVP_CipherInit(ctx, EVP_sm4_ctr(), (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 0) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+    } else if (modeStr == "GCM") {
+        other_cipher = EVP_CIPHER_fetch(NULL, "SM4-GCM", NULL);
+        if (!other_cipher) {
+            qDebug() << "Failed to fetch cipher. SM4-GCM";
+            goto out;
+        }
+        if (EVP_CipherInit(ctx, other_cipher, NULL, NULL, 0) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+        // if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, NULL) != 1) {
+        //     qDebug() << "Failed to set IV.";
+        //     goto out;
+        // }
+        // if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, NULL) != 1) {
+        //     qDebug() << "Failed to set tag.";
+        //     goto out;
+        // }
+        if (EVP_CipherInit(ctx, NULL, (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 0) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+        if (EVP_CipherUpdate(ctx, NULL, (int *)&tmp_len, (const unsigned char *)aadBytes.constData(), aadBytes.size()) != 1) {
+            qDebug() << "Failed to set AAD.";
+            goto out;
+        }
+
+    } else if (modeStr == "CCM") {
+        other_cipher = EVP_CIPHER_fetch(NULL, "SM4-CCM", NULL);
+        if (!other_cipher) {
+            qDebug() << "Failed to fetch cipher. SM4-CCM";
+            goto out;
+        }
+        if (EVP_CipherInit(ctx, other_cipher, NULL, NULL, 0) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_IVLEN, 12, NULL) != 1) {
+            qDebug() << "Failed to set IV.";
+            goto out;
+        }
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_TAG, 16, NULL) != 1) {
+            qDebug() << "Failed to set tag.";
+            goto out;
+        }
+        // if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_MSGLEN, ciphertextBytes.size(), NULL) != 1) {
+        //     qDebug() << "Failed to set message length.";
+        //     goto out;
+        // }
+        if (EVP_CipherInit(ctx, NULL, (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 0) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+        if (EVP_CipherUpdate(ctx, NULL, (int *)&tmp_len, NULL, ciphertextBytes.size()) != 1) {
+            qDebug() << "Failed to set message length.";
+            goto out;
+        }
+        if (EVP_CipherUpdate(ctx, NULL, (int *)&tmp_len, (const unsigned char *)aadBytes.constData(), aadBytes.size()) != 1) {
+            qDebug() << "Failed to set AAD.";
+            goto out;
+        }
+    } else if (modeStr == "XTS") {
+        other_cipher = EVP_CIPHER_fetch(NULL, "SM4-XTS", NULL);
+        if (!other_cipher) {
+            qDebug() << "Failed to fetch cipher. SM4-XTS";
+            goto out;
+        }
+        if (EVP_CipherInit(ctx, other_cipher, (const unsigned char *)keyBytes.constData(), (const unsigned char *)ivBytes.constData(), 1) != 1) {
+            qDebug() << "Failed to set key and IV.";
+            goto out;
+        }
+    } else {
+        qDebug() << "Unsupported mode.";
+        goto out;
+    }
+
+    // 禁用补位
+    EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+    if (EVP_CipherUpdate(ctx, plaintext, (int *)&tmp_len, (const unsigned char *)ciphertextBytes.constData(), ciphertextBytes.size()) != 1) {
+        qDebug() << "Failed to encrypt plaintext.";
+        goto out;
+    }
+    qDebug() << "tmp_len:" << tmp_len;
+    plaintext_len += tmp_len;
+
+    if (EVP_CipherFinal(ctx, plaintext + tmp_len, (int *)&tmp_len) != 1) {
+        qDebug() << "Failed to finalize encryption.";
+        goto out;
+    }
+    qDebug() << "tmp_len:" << tmp_len;
+    plaintext_len += tmp_len;
+
+
+    plaintextStr = QByteArray(reinterpret_cast<char *>(plaintext), plaintext_len).toHex();
+
+    qDebug() << "plaintext:" << plaintextStr;
+
+    ui->textEdit_sm4_output->setText(plaintextStr);
+
+
+    if (modeStr == "GCM") {
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag) != 1) {
+            qDebug() << "Failed to get tag.";
+            goto out;
+        }
+        QString tagStr = QByteArray(reinterpret_cast<char *>(tag), 16).toHex();
+        qDebug() << "Tag:" << tagStr;
+        ui->textEdit_sm4_output_tag->setText(tagStr);
+    }
+    if (modeStr == "CCM") {
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_GET_TAG, 16, tag) != 1) {
+            qDebug() << "Failed to get tag.";
+            goto out;
+        }
+        QString tagStr = QByteArray(reinterpret_cast<char *>(tag), 16).toHex();
+        qDebug() << "Tag:" << tagStr;
+        ui->textEdit_sm4_output_tag->setText(tagStr);
+    }
+
+
+out:
+    if (plaintext) {
+        OPENSSL_free(plaintext);
+    }
+    if (ctx) {
+        EVP_CIPHER_CTX_free(ctx);
+    }
+}
+

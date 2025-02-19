@@ -61,6 +61,12 @@ private slots:
 
     void on_pushButton_stream_decrypt_clicked();
 
+    void on_pushButton_sm2_gen_pub_key_with_pri_key_clicked();
+
+    void on_pushButton_caculator_xor_clicked();
+
+    void on_pushButton_sm4_decrypt_clicked();
+
 private:
     Ui::MainWindow *ui;
     void generate_sm2_keypair();

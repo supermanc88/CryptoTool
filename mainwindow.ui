@@ -14,7 +14,7 @@
    <string>CryptoTool</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QTabWidget" name="tabWidget">
+   <widget class="QTabWidget" name="tabWidget_other_tool">
     <property name="geometry">
      <rect>
       <x>0</x>
@@ -30,7 +30,7 @@
      <enum>QTabWidget::TabShape::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>7</number>
+     <number>2</number>
     </property>
     <widget class="QWidget" name="tab_sm2">
      <attribute name="title">
@@ -319,6 +319,19 @@
       </property>
       <property name="text">
        <string>清空</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_sm2_gen_pub_key_with_pri_key">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>350</y>
+        <width>100</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>私钥生成公钥</string>
       </property>
      </widget>
     </widget>
@@ -1662,6 +1675,54 @@
       </property>
       <property name="text">
        <string>解密</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab">
+     <attribute name="title">
+      <string>其它工具</string>
+     </attribute>
+     <widget class="QTextEdit" name="textEdit_other_tool_input1">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>20</y>
+        <width>311</width>
+        <height>111</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_other_tool_input2">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>190</y>
+        <width>311</width>
+        <height>111</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit_other_tool_result">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>380</y>
+        <width>311</width>
+        <height>111</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_caculator_xor">
+      <property name="geometry">
+       <rect>
+        <x>50</x>
+        <y>420</y>
+        <width>100</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>计算异或</string>
       </property>
      </widget>
     </widget>
