@@ -5,9 +5,9 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += c++17
 
 INCLUDEPATH += .
-INCLUDEPATH += /opt/homebrew/Cellar/openssl@3/3.4.0/include
+INCLUDEPATH += /opt/homebrew/Cellar/openssl@3/3.6.0/include
 
-LIBS += /opt/homebrew/Cellar/openssl@3/3.4.0/lib/libcrypto.a
+LIBS += /opt/homebrew/Cellar/openssl@3/3.6.0/lib/libcrypto.a
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.

@@ -526,12 +526,19 @@ void MainWindow::on_pushButton_sm3_hash_clicked()
 {
     QString hash_str = NULL;
     QString hash_result = NULL;
+    QString hash_plain_input_type = NULL;
+    QByteArray hash_bytes = NULL;
 
-
+    hash_plain_input_type = ui->comboBox_sm3_plain_input_type->currentText();
     hash_str = ui->textEdit_sm3_plain->toPlainText();
     qDebug() << "hash_str:" << hash_str;
-    QByteArray hash_bytes = QByteArray::fromHex(hash_str.toUtf8());
 
+    if (hash_plain_input_type == "Hex") {
+        hash_bytes = QByteArray::fromHex(hash_str.toUtf8());
+    } else if (hash_plain_input_type == "String") {
+        hash_bytes = hash_str.toUtf8();
+    }
+    qDebug() << "Hash input bytes:" << hash_bytes.toHex();
 
     unsigned char hash[32];
     unsigned int hash_len = 32;
@@ -812,12 +819,14 @@ void MainWindow::on_pushButton_sm4_encrypt_clicked()
     QString ivStr = ui->textEdit_sm4_iv->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString aadStr = ui->textEdit_sm4_aad->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString modeStr = ui->comboBox_sm4_mode->currentText();
+    QString paddingStr = ui->comboBox_is_padding->currentText();
 
     qDebug() << "Key:" << keyStr;
     qDebug() << "Plaintext:" << plaintextStr;
     qDebug() << "IV:" << ivStr;
     qDebug() << "AAD:" << aadStr;
     qDebug() << "Mode:" << modeStr;
+    qDebug() << "Padding:" << paddingStr;
 
     QString ciphertextStr = NULL;
 
@@ -950,8 +959,13 @@ void MainWindow::on_pushButton_sm4_encrypt_clicked()
         goto out;
     }
 
-    // 禁用补位
-    EVP_CIPHER_CTX_set_padding(ctx, 0);
+    if (paddingStr == "是") {
+        // 启用补位
+        EVP_CIPHER_CTX_set_padding(ctx, 1);
+    } else {
+        // 禁用补位
+        EVP_CIPHER_CTX_set_padding(ctx, 0);
+    }
 
     if (EVP_CipherUpdate(ctx, ciphertext, (int *)&tmp_len, (const unsigned char *)plaintextBytes.constData(), plaintextBytes.size()) != 1) {
         qDebug() << "Failed to encrypt plaintext.";
@@ -2742,12 +2756,14 @@ void MainWindow::on_pushButton_sm4_decrypt_clicked()
     QString ivStr = ui->textEdit_sm4_iv->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString aadStr = ui->textEdit_sm4_aad->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString modeStr = ui->comboBox_sm4_mode->currentText();
+    QString paddingStr = ui->comboBox_is_padding->currentText();
 
     qDebug() << "Key:" << keyStr;
     qDebug() << "Plaintext:" << ciphertextStr;
     qDebug() << "IV:" << ivStr;
     qDebug() << "AAD:" << aadStr;
     qDebug() << "Mode:" << modeStr;
+    qDebug() << "Padding:" << paddingStr;
 
     QString plaintextStr = NULL;
 
@@ -2880,8 +2896,14 @@ void MainWindow::on_pushButton_sm4_decrypt_clicked()
         goto out;
     }
 
-    // 禁用补位
-    EVP_CIPHER_CTX_set_padding(ctx, 0);
+    if (paddingStr == "是") {
+        // 启用补位
+        EVP_CIPHER_CTX_set_padding(ctx, 1);
+    } else {
+        // 禁用补位
+        EVP_CIPHER_CTX_set_padding(ctx, 0);
+    }
+
 
     if (EVP_CipherUpdate(ctx, plaintext, (int *)&tmp_len, (const unsigned char *)ciphertextBytes.constData(), ciphertextBytes.size()) != 1) {
         qDebug() << "Failed to encrypt plaintext.";
@@ -2930,6 +2952,7 @@ out:
         OPENSSL_free(plaintext);
     }
     if (ctx) {
+        qDebug() << "EVP_CIPHER_CTX_free";
         EVP_CIPHER_CTX_free(ctx);
     }
 }
