@@ -3,12 +3,6 @@
 
 #include <QMainWindow>
 
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
-QT_END_NAMESPACE
-
 class QListWidget;
 class QStackedWidget;
 class QWidget;
@@ -31,7 +25,6 @@ public:
     ~MainWindow();
 
 private:
-    Ui::MainWindow *ui;
     QListWidget *navigationList_;
     QStackedWidget *pageStack_;
     Sm2Page *sm2Page_;

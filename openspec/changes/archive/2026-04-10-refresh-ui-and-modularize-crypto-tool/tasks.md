@@ -23,5 +23,5 @@
 
 - [x] 4.1 Reduce `MainWindow` to shell coordination, navigation, and UI event wiring responsibilities
 - [x] 4.2 Update project files and includes to reflect the new page and module structure
-- [ ] 4.3 Validate that representative workflows still behave correctly after modularization and UI migration
+- [x] 4.3 Validate that representative workflows still behave correctly after modularization and UI migration
 - [x] 4.4 Remove obsolete monolithic UI and implementation remnants that are no longer used by the redesigned structure

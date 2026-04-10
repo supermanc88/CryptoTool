@@ -1,5 +1,4 @@
 #include "mainwindow.h"
-#include "./ui_mainwindow.h"
 
 #include "widgets/digestpage.h"
 #include "widgets/dsapage.h"
@@ -18,13 +17,12 @@
 #include <QScrollArea>
 #include <QStackedWidget>
 #include <QStatusBar>
-#include <QTabWidget>
 #include <QVBoxLayout>
 #include <QVector>
+#include <QWidget>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
     , navigationList_(nullptr)
     , pageStack_(nullptr)
     , sm2Page_(nullptr)
@@ -37,36 +35,32 @@ MainWindow::MainWindow(QWidget *parent)
     , streamPage_(nullptr)
     , utilityPage_(nullptr)
 {
-    ui->setupUi(this);
     setupWindowShell();
     applyWindowStyle();
     showStatus("CryptoTool ready.");
 }
 
 MainWindow::~MainWindow()
-{
-    delete ui;
-}
+= default;
 
 void MainWindow::setupWindowShell()
 {
     resize(1440, 920);
     setMinimumSize(1180, 760);
 
-    auto *tabWidget = ui->tabWidget_other_tool;
-    QVector<QPair<QString, QWidget *>> pages;
-    for (int index = tabWidget->count() - 1; index >= 0; --index) {
-        QWidget *page = tabWidget->widget(index);
-        const QString title = tabWidget->tabText(index);
-        tabWidget->removeTab(index);
-        pages.prepend({title, page});
-    }
+    auto *central = new QWidget(this);
+    setCentralWidget(central);
+    setStatusBar(new QStatusBar(this));
 
-    auto *rootLayout = new QHBoxLayout(ui->centralwidget);
+    const QVector<QString> pages = {
+        "SM2", "SM3", "SM4", "RSA", "DSA", "digest", "MAC", "Stream", "其它工具"
+    };
+
+    auto *rootLayout = new QHBoxLayout(central);
     rootLayout->setContentsMargins(24, 24, 24, 24);
     rootLayout->setSpacing(20);
 
-    auto *navCard = new QFrame(ui->centralwidget);
+    auto *navCard = new QFrame(central);
     navCard->setObjectName("navCard");
     navCard->setMinimumWidth(250);
     auto *navLayout = new QVBoxLayout(navCard);
@@ -87,7 +81,7 @@ void MainWindow::setupWindowShell()
     navLayout->addWidget(appSubtitle);
     navLayout->addWidget(navigationList_, 1);
 
-    auto *contentCard = new QFrame(ui->centralwidget);
+    auto *contentCard = new QFrame(central);
     contentCard->setObjectName("contentCard");
     auto *contentLayout = new QVBoxLayout(contentCard);
     contentLayout->setContentsMargins(18, 18, 18, 18);
@@ -100,51 +94,48 @@ void MainWindow::setupWindowShell()
     rootLayout->addWidget(navCard);
     rootLayout->addWidget(contentCard, 1);
 
-    for (const auto &pageEntry : pages) {
-        navigationList_->addItem(pageEntry.first);
+    for (const auto &pageTitle : pages) {
+        navigationList_->addItem(pageTitle);
         auto *scrollArea = new QScrollArea(pageStack_);
         scrollArea->setWidgetResizable(true);
         scrollArea->setFrameShape(QFrame::NoFrame);
 
-        if (pageEntry.first == "SM2") {
+        if (pageTitle == "SM2") {
             sm2Page_ = new Sm2Page(scrollArea);
             connect(sm2Page_, &Sm2Page::statusMessageRequested, this, &MainWindow::showStatus);
             scrollArea->setWidget(sm2Page_);
-        } else if (pageEntry.first == "SM3") {
+        } else if (pageTitle == "SM3") {
             sm3Page_ = new Sm3Page(scrollArea);
             connect(sm3Page_, &Sm3Page::statusMessageRequested, this, &MainWindow::showStatus);
             scrollArea->setWidget(sm3Page_);
-        } else if (pageEntry.first == "SM4") {
+        } else if (pageTitle == "SM4") {
             sm4Page_ = new Sm4Page(scrollArea);
             connect(sm4Page_, &Sm4Page::statusMessageRequested, this, &MainWindow::showStatus);
             scrollArea->setWidget(sm4Page_);
-        } else if (pageEntry.first == "RSA") {
+        } else if (pageTitle == "RSA") {
             rsaPage_ = new RsaPage(scrollArea);
             connect(rsaPage_, &RsaPage::statusMessageRequested, this, &MainWindow::showStatus);
             scrollArea->setWidget(rsaPage_);
-        } else if (pageEntry.first == "DSA") {
+        } else if (pageTitle == "DSA") {
             dsaPage_ = new DsaPage(scrollArea);
             connect(dsaPage_, &DsaPage::statusMessageRequested, this, &MainWindow::showStatus);
             scrollArea->setWidget(dsaPage_);
-        } else if (pageEntry.first == "digest") {
+        } else if (pageTitle == "digest") {
             digestPage_ = new DigestPage(scrollArea);
             connect(digestPage_, &DigestPage::statusMessageRequested, this, &MainWindow::showStatus);
             scrollArea->setWidget(digestPage_);
-        } else if (pageEntry.first == "MAC") {
+        } else if (pageTitle == "MAC") {
             macPage_ = new MacPage(scrollArea);
             connect(macPage_, &MacPage::statusMessageRequested, this, &MainWindow::showStatus);
             scrollArea->setWidget(macPage_);
-        } else if (pageEntry.first == "Stream") {
+        } else if (pageTitle == "Stream") {
             streamPage_ = new StreamPage(scrollArea);
             connect(streamPage_, &StreamPage::statusMessageRequested, this, &MainWindow::showStatus);
             scrollArea->setWidget(streamPage_);
-        } else if (pageEntry.first == "其它工具") {
+        } else if (pageTitle == "其它工具") {
             utilityPage_ = new UtilityPage(scrollArea);
             connect(utilityPage_, &UtilityPage::statusMessageRequested, this, &MainWindow::showStatus);
             scrollArea->setWidget(utilityPage_);
-        } else {
-            scrollArea->setWidget(pageEntry.second);
-            pageEntry.second->setMinimumSize(0, 0);
         }
 
         pageStack_->addWidget(scrollArea);
@@ -152,9 +143,6 @@ void MainWindow::setupWindowShell()
 
     connect(navigationList_, &QListWidget::currentRowChanged, pageStack_, &QStackedWidget::setCurrentIndex);
     navigationList_->setCurrentRow(0);
-
-    tabWidget->hide();
-    tabWidget->deleteLater();
 }
 
 void MainWindow::applyWindowStyle()
