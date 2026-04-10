@@ -9,6 +9,19 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+class QListWidget;
+class QStackedWidget;
+class QWidget;
+class Sm2Page;
+class Sm3Page;
+class Sm4Page;
+class RsaPage;
+class DsaPage;
+class DigestPage;
+class MacPage;
+class StreamPage;
+class UtilityPage;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -17,60 +30,23 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private slots:
-
-    void on_pushButton_gen_sm2_keypair_clicked();
-
-    void on_pushButton_sm2_prikey_sign_clicked();
-
-    void on_pushButton_sm2_pubkey_verify_clicked();
-
-    void on_pushButton_sm2_pubkey_encrypt_clicked();
-
-    void on_pushButton_sm2_prikey_decrypt_clicked();
-
-    void on_pushButton_sm3_hash_clicked();
-
-    void on_pushButton_sm3_hash_ZA_clicked();
-
-    void on_pushButton_sm2_tab_clear_clicked();
-
-    void on_pushButton_sm3_tab_clear_clicked();
-
-    void on_pushButton_sm4_encrypt_clicked();
-
-    void on_pushButton_gen_rsa_keypair_clicked();
-
-    void on_pushButton_rsa_prikey_operation_clicked();
-
-    void on_pushButton_rsa_pubkey_operation_clicked();
-
-    void on_pushButton_gen_dsa_keypair_clicked();
-
-    void on_pushButton_dsa_sign_operation_clicked();
-
-    void on_pushButton_dsa_verify_operation_clicked();
-
-    void on_pushButton_digest_calculate_clicked();
-
-    void on_pushButton_mac_calculate_clicked();
-
-    void on_comboBox_mac_mode_currentIndexChanged(int index);
-
-    void on_pushButton_stream_encrypt_clicked();
-
-    void on_pushButton_stream_decrypt_clicked();
-
-    void on_pushButton_sm2_gen_pub_key_with_pri_key_clicked();
-
-    void on_pushButton_caculator_xor_clicked();
-
-    void on_pushButton_sm4_decrypt_clicked();
-
 private:
     Ui::MainWindow *ui;
-    void generate_sm2_keypair();
-    void sm2_prikey_sign_hash();
+    QListWidget *navigationList_;
+    QStackedWidget *pageStack_;
+    Sm2Page *sm2Page_;
+    Sm3Page *sm3Page_;
+    Sm4Page *sm4Page_;
+    RsaPage *rsaPage_;
+    DsaPage *dsaPage_;
+    DigestPage *digestPage_;
+    MacPage *macPage_;
+    StreamPage *streamPage_;
+    UtilityPage *utilityPage_;
 
+    void setupWindowShell();
+    void applyWindowStyle();
+    void showStatus(const QString &message, bool success = true) const;
 };
+
 #endif // MAINWINDOW_H
