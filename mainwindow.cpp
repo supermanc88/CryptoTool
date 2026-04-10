@@ -701,19 +701,42 @@ done:
 void MainWindow::on_pushButton_sm3_hash_ZA_clicked()
 {
 
-    QString pubkeyStr = ui->textEdit_sm2_pubkey->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
+    QString pubkeyStr = ui->textEdit_sm3_publickey->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString uidStr = ui->textEdit_sm3_userid->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString hash_str = ui->textEdit_sm3_plain->toPlainText().remove(QRegularExpression("\\s")); // 清除空格或换行符
     QString hash_result = NULL;
     QString za_str = NULL;
 
+    QString hash_plain_input_type = ui->comboBox_sm3_plain_input_type->currentText();
+    QString userid_input_type = ui->comboBox_sm3_userid_input_type->currentText();
+
     qDebug() << "Public Key:" << pubkeyStr;
     qDebug() << "User ID:" << uidStr;
     qDebug() << "Hash:" << hash_str;
+    qDebug() << "Hash Plain Input Type:" << hash_plain_input_type;
+    qDebug() << "User ID Input Type:" << userid_input_type;
 
     QByteArray pubkeyBytes = QByteArray::fromHex(pubkeyStr.toUtf8());
-    QByteArray uidBytes = QByteArray::fromHex(uidStr.toUtf8());
-    QByteArray hashBytes = QByteArray::fromHex(hash_str.toUtf8());
+    // EC_KEY_oct2key 要求非压缩格式（65字节，04开头），若缺少前缀则自动补充
+    if (pubkeyBytes.size() == 64) {
+        pubkeyBytes.prepend((char)0x04);
+    }
+
+
+    QByteArray uidBytes = NULL;
+    if (userid_input_type == "Hex") {
+        uidBytes = QByteArray::fromHex(uidStr.toUtf8());
+    } else if (userid_input_type == "String") {
+        uidBytes = uidStr.toUtf8();
+    }
+
+
+    QByteArray hashBytes = NULL;
+    if (hash_plain_input_type == "Hex") {
+        hashBytes = QByteArray::fromHex(hash_str.toUtf8());
+    } else if (hash_plain_input_type == "String") {
+        hashBytes = hash_str.toUtf8();
+    }
 
     const EVP_MD *digest_md = EVP_sm3();
     const int md_size = EVP_MD_size(digest_md);
@@ -1024,7 +1047,11 @@ void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
     EVP_PKEY *pkey = NULL;
     EVP_PKEY_CTX *pctx = NULL;
 
-    int rsa_key_len = 2048;
+    int select_key_len = ui->RSA_bit_len_comboBox->currentText().toInt();
+
+    qDebug() << "Selected RSA Key Length:" << select_key_len;
+
+    int rsa_key_len = select_key_len;
 
     RSA *rsa = NULL;
 
@@ -1092,6 +1119,7 @@ void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
         goto out;
     }
     nStr = n_hex;
+    qDebug() << "n:" << n_hex;
 
     e_hex = BN_bn2hex(e);
     if (!e_hex) {
@@ -1099,6 +1127,7 @@ void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
         goto out;
     }
     eStr = e_hex;
+    qDebug() << "e:" << e_hex;
 
     d_hex = BN_bn2hex(d);
     if (!d_hex) {
@@ -1106,6 +1135,7 @@ void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
         goto out;
     }
     dStr = d_hex;
+    qDebug() << "d:" << d_hex;
 
     p_hex = BN_bn2hex(p);
     if (!p_hex) {
@@ -1113,6 +1143,7 @@ void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
         goto out;
     }
     pStr = p_hex;
+    qDebug() << "p:" << p_hex;
 
     q_hex = BN_bn2hex(q);
     if (!q_hex) {
@@ -1120,6 +1151,7 @@ void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
         goto out;
     }
     qStr = q_hex;
+    qDebug() << "q:" << q_hex;
 
     dmp1_hex = BN_bn2hex(dmp1);
     if (!dmp1_hex) {
@@ -1127,6 +1159,7 @@ void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
         goto out;
     }
     dmp1Str = dmp1_hex;
+    qDebug() << "dmp1:" << dmp1_hex;
 
     dmq1_hex = BN_bn2hex(dmq1);
     if (!dmq1_hex) {
@@ -1134,6 +1167,7 @@ void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
         goto out;
     }
     dmq1Str = dmq1_hex;
+    qDebug() << "dmq1:" << dmq1_hex;
 
     iqmp_hex = BN_bn2hex(iqmp);
     if (!iqmp_hex) {
@@ -1141,6 +1175,7 @@ void MainWindow::on_pushButton_gen_rsa_keypair_clicked()
         goto out;
     }
     iqmpStr = iqmp_hex;
+    qDebug() << "iqmp:" << iqmp_hex;
 
     rsa_pubkey = nStr + eStr;
     rsa_prikey = nStr + dStr;

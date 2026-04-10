@@ -24,10 +24,10 @@
      </rect>
     </property>
     <property name="tabPosition">
-     <enum>QTabWidget::TabPosition::North</enum>
+     <enum>QTabWidget::North</enum>
     </property>
     <property name="tabShape">
-     <enum>QTabWidget::TabShape::Rounded</enum>
+     <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
      <number>1</number>
@@ -474,7 +474,7 @@
       <property name="geometry">
        <rect>
         <x>90</x>
-        <y>310</y>
+        <y>370</y>
         <width>58</width>
         <height>16</height>
        </rect>
@@ -487,7 +487,40 @@
       <property name="geometry">
        <rect>
         <x>170</x>
-        <y>300</y>
+        <y>360</y>
+        <width>103</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <item>
+       <property name="text">
+        <string>Hex</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>String</string>
+       </property>
+      </item>
+     </widget>
+     <widget class="QLabel" name="label_51">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>320</y>
+        <width>71</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>user id格式</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="comboBox_sm3_userid_input_type">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>310</y>
         <width>103</width>
         <height>32</height>
        </rect>
@@ -978,6 +1011,36 @@
       <property name="text">
        <string>加密原文</string>
       </property>
+     </widget>
+     <widget class="QComboBox" name="RSA_bit_len_comboBox">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>10</y>
+        <width>103</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <item>
+       <property name="text">
+        <string>1024</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>2048</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>3072</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>4096</string>
+       </property>
+      </item>
      </widget>
     </widget>
     <widget class="QWidget" name="tab_dsa">
