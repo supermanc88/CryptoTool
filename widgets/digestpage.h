@@ -16,6 +16,7 @@ public:
 
 signals:
     void statusMessageRequested(const QString &message, bool success);
+    void sendToConverterRequested(const QString &text, const QString &sourceFormat, const QString &label);
 
 private:
     QComboBox *digestCombo_;
@@ -29,6 +30,7 @@ private:
 private slots:
     void handleCalculate();
     void handleClear();
+    void handleSendToConverter();
 };
 
 #endif // WIDGETS_DIGESTPAGE_H

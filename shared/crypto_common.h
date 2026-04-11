@@ -19,6 +19,14 @@ struct OperationResult
     QString message;
 };
 
+struct ConversionResult
+{
+    bool success = false;
+    QByteArray bytes;
+    QString text;
+    QString message;
+};
+
 struct KeyPairResult
 {
     bool success = false;

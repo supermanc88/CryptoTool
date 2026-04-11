@@ -16,6 +16,7 @@ public:
 
 signals:
     void statusMessageRequested(const QString &message, bool success);
+    void sendToConverterRequested(const QString &text, const QString &sourceFormat, const QString &label);
 
 private:
     QComboBox *modeCombo_;
@@ -32,6 +33,7 @@ private slots:
     void handleEncrypt();
     void handleDecrypt();
     void handleClear();
+    void handleSendToConverter();
 };
 
 #endif // WIDGETS_STREAMPAGE_H

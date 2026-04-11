@@ -5,6 +5,7 @@
 
 class QListWidget;
 class QStackedWidget;
+class QPushButton;
 class QWidget;
 class Sm2Page;
 class Sm3Page;
@@ -15,6 +16,7 @@ class DigestPage;
 class MacPage;
 class StreamPage;
 class UtilityPage;
+class ConverterSidePanel;
 
 class MainWindow : public QMainWindow
 {
@@ -36,10 +38,14 @@ private:
     MacPage *macPage_;
     StreamPage *streamPage_;
     UtilityPage *utilityPage_;
+    ConverterSidePanel *converterPanel_;
+    QPushButton *converterToggleButton_;
 
     void setupWindowShell();
     void applyWindowStyle();
     void showStatus(const QString &message, bool success = true) const;
+    void setConverterVisible(bool visible);
+    void loadConverterSource(const QString &text, const QString &sourceFormat, const QString &label);
 };
 
 #endif // MAINWINDOW_H

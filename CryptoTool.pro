@@ -26,6 +26,8 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     shared/crypto_common.cpp \
+    shared/converter_service.cpp \
+    widgets/convertersidepanel.cpp \
     widgets/digestpage.cpp \
     widgets/dsapage.cpp \
     widgets/macpage.cpp \
@@ -48,6 +50,8 @@ HEADERS += \
     crypto/utility_service.h \
     mainwindow.h \
     shared/crypto_common.h \
+    shared/converter_service.h \
+    widgets/convertersidepanel.h \
     widgets/digestpage.h \
     widgets/dsapage.h \
     widgets/macpage.h \

@@ -171,6 +171,11 @@ void Sm3Page::buildUi()
     grid->addWidget(createPanel("ZA MODE", "Public Key + User ID", "需要计算 ZA 相关消息哈希时，补充公钥和用户 ID。", zaLayout), 0, 1);
 
     auto *resultLayout = new QVBoxLayout;
+    auto *resultActions = new QHBoxLayout;
+    auto *sendButton = createActionButton("Send Result to Converter", "secondary");
+    resultActions->addWidget(sendButton);
+    resultActions->addStretch();
+    resultLayout->addLayout(resultActions);
     resultLayout->addWidget(createSectionLabel("Hash Result"));
     resultLayout->addWidget(hashResultEdit_);
     grid->addWidget(createPanel("OUTPUT", "Result Surface", "始终把结果放在单独输出区，避免和输入框混杂。", resultLayout), 1, 0, 1, 2);
@@ -279,6 +284,7 @@ void Sm3Page::buildUi()
 
     connect(hashButton, &QPushButton::clicked, this, &Sm3Page::handleHash);
     connect(zaButton, &QPushButton::clicked, this, &Sm3Page::handleHashZa);
+    connect(sendButton, &QPushButton::clicked, this, &Sm3Page::handleSendToConverter);
     connect(clearButton, &QPushButton::clicked, this, &Sm3Page::handleClear);
 }
 
@@ -328,4 +334,14 @@ void Sm3Page::handleClear()
     messageTypeCombo_->setCurrentIndex(0);
     userIdTypeCombo_->setCurrentIndex(0);
     setStatus("SM3 workspace cleared.", true);
+}
+
+void Sm3Page::handleSendToConverter()
+{
+    if (hashResultEdit_->toPlainText().isEmpty()) {
+        setStatus("No SM3 result to send.", false);
+        return;
+    }
+
+    emit sendToConverterRequested(hashResultEdit_->toPlainText(), "Hex", "SM3 result");
 }

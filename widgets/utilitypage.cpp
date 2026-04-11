@@ -66,8 +66,10 @@ void UtilityPage::buildUi()
     auto *workLayout = new QVBoxLayout;
     auto *actionRow = new QHBoxLayout;
     auto *xorButton = createActionButton("Calculate XOR");
+    auto *sendButton = createActionButton("Send Result to Converter", "secondary");
     auto *clearButton = createActionButton("Clear Workspace", "ghost");
     actionRow->addWidget(xorButton);
+    actionRow->addWidget(sendButton);
     actionRow->addStretch();
     actionRow->addWidget(clearButton);
     workLayout->addLayout(actionRow);
@@ -101,11 +103,14 @@ void UtilityPage::buildUi()
         QPushButton { border-radius: 12px; padding: 11px 16px; font-weight: 700; border: none; }
         QPushButton[variant="primary"] { background: #4f5d75; color: white; }
         QPushButton[variant="primary"]:hover { background: #414d62; }
+        QPushButton[variant="secondary"] { background: #e4e8ec; color: #3b4452; }
+        QPushButton[variant="secondary"]:hover { background: #d7dee5; }
         QPushButton[variant="ghost"] { background: #f4efe7; color: #54483c; }
         QPushButton[variant="ghost"]:hover { background: #ece4d8; }
     )");
 
     connect(xorButton, &QPushButton::clicked, this, &UtilityPage::handleXor);
+    connect(sendButton, &QPushButton::clicked, this, &UtilityPage::handleSendToConverter);
     connect(clearButton, &QPushButton::clicked, this, &UtilityPage::handleClear);
 }
 
@@ -133,4 +138,14 @@ void UtilityPage::handleClear()
     inputBEdit_->clear();
     resultEdit_->clear();
     setStatus("Utility workspace cleared.", true);
+}
+
+void UtilityPage::handleSendToConverter()
+{
+    if (resultEdit_->toPlainText().isEmpty()) {
+        setStatus("No XOR result to send.", false);
+        return;
+    }
+
+    emit sendToConverterRequested(resultEdit_->toPlainText(), "Hex", "XOR result");
 }

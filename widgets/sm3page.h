@@ -17,6 +17,7 @@ public:
 
 signals:
     void statusMessageRequested(const QString &message, bool success);
+    void sendToConverterRequested(const QString &text, const QString &sourceFormat, const QString &label);
 
 private:
     QTextEdit *publicKeyEdit_;
@@ -39,6 +40,7 @@ private slots:
     void handleHash();
     void handleHashZa();
     void handleClear();
+    void handleSendToConverter();
 };
 
 #endif

@@ -74,8 +74,10 @@ void DigestPage::buildUi()
     auto *workLayout = new QVBoxLayout;
     auto *actionRow = new QHBoxLayout;
     auto *calcButton = createActionButton("Calculate Digest");
+    auto *sendButton = createActionButton("Send Result to Converter", "secondary");
     auto *clearButton = createActionButton("Clear Workspace", "ghost");
     actionRow->addWidget(calcButton);
+    actionRow->addWidget(sendButton);
     actionRow->addStretch();
     actionRow->addWidget(clearButton);
     workLayout->addLayout(actionRow);
@@ -109,11 +111,14 @@ void DigestPage::buildUi()
         QPushButton { border-radius: 12px; padding: 11px 16px; font-weight: 700; border: none; }
         QPushButton[variant="primary"] { background: #598392; color: white; }
         QPushButton[variant="primary"]:hover { background: #496c78; }
+        QPushButton[variant="secondary"] { background: #deebe7; color: #2d5d4e; }
+        QPushButton[variant="secondary"]:hover { background: #d0e3dc; }
         QPushButton[variant="ghost"] { background: #f4efe7; color: #54483c; }
         QPushButton[variant="ghost"]:hover { background: #ece4d8; }
     )");
 
     connect(calcButton, &QPushButton::clicked, this, &DigestPage::handleCalculate);
+    connect(sendButton, &QPushButton::clicked, this, &DigestPage::handleSendToConverter);
     connect(clearButton, &QPushButton::clicked, this, &DigestPage::handleClear);
 }
 
@@ -140,4 +145,14 @@ void DigestPage::handleClear()
     plainEdit_->clear();
     resultEdit_->clear();
     setStatus("Digest workspace cleared.", true);
+}
+
+void DigestPage::handleSendToConverter()
+{
+    if (resultEdit_->toPlainText().isEmpty()) {
+        setStatus("No digest result to send.", false);
+        return;
+    }
+
+    emit sendToConverterRequested(resultEdit_->toPlainText(), "Hex", "Digest result");
 }

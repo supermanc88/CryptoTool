@@ -87,8 +87,10 @@ void MacPage::buildUi()
     auto *workLayout = new QVBoxLayout;
     auto *actionRow = new QHBoxLayout;
     auto *calcButton = createActionButton("Calculate MAC");
+    auto *sendButton = createActionButton("Send Result to Converter", "secondary");
     auto *clearButton = createActionButton("Clear Workspace", "ghost");
     actionRow->addWidget(calcButton);
+    actionRow->addWidget(sendButton);
     actionRow->addStretch();
     actionRow->addWidget(clearButton);
     workLayout->addLayout(actionRow);
@@ -124,11 +126,14 @@ void MacPage::buildUi()
         QPushButton { border-radius: 12px; padding: 11px 16px; font-weight: 700; border: none; }
         QPushButton[variant="primary"] { background: #8c5e58; color: white; }
         QPushButton[variant="primary"]:hover { background: #744c47; }
+        QPushButton[variant="secondary"] { background: #efe2df; color: #6e4b46; }
+        QPushButton[variant="secondary"]:hover { background: #e7d5d0; }
         QPushButton[variant="ghost"] { background: #f4efe7; color: #54483c; }
         QPushButton[variant="ghost"]:hover { background: #ece4d8; }
     )");
 
     connect(calcButton, &QPushButton::clicked, this, &MacPage::handleCalculate);
+    connect(sendButton, &QPushButton::clicked, this, &MacPage::handleSendToConverter);
     connect(clearButton, &QPushButton::clicked, this, &MacPage::handleClear);
     connect(macModeCombo_, qOverload<int>(&QComboBox::currentIndexChanged), this, &MacPage::handleModeChanged);
 }
@@ -174,4 +179,14 @@ void MacPage::handleClear()
     plainEdit_->clear();
     resultEdit_->clear();
     setStatus("MAC workspace cleared.", true);
+}
+
+void MacPage::handleSendToConverter()
+{
+    if (resultEdit_->toPlainText().isEmpty()) {
+        setStatus("No MAC result to send.", false);
+        return;
+    }
+
+    emit sendToConverterRequested(resultEdit_->toPlainText(), "Hex", "MAC result");
 }

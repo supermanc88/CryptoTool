@@ -16,6 +16,7 @@ public:
 
 signals:
     void statusMessageRequested(const QString &message, bool success);
+    void sendToConverterRequested(const QString &text, const QString &sourceFormat, const QString &label);
 
 private:
     QComboBox *macModeCombo_;
@@ -33,6 +34,7 @@ private slots:
     void handleCalculate();
     void handleModeChanged(int index);
     void handleClear();
+    void handleSendToConverter();
 };
 
 #endif // WIDGETS_MACPAGE_H

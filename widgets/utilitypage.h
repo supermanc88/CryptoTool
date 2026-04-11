@@ -15,6 +15,7 @@ public:
 
 signals:
     void statusMessageRequested(const QString &message, bool success);
+    void sendToConverterRequested(const QString &text, const QString &sourceFormat, const QString &label);
 
 private:
     QTextEdit *inputAEdit_;
@@ -28,6 +29,7 @@ private:
 private slots:
     void handleXor();
     void handleClear();
+    void handleSendToConverter();
 };
 
 #endif // WIDGETS_UTILITYPAGE_H

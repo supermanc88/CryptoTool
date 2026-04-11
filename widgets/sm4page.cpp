@@ -162,9 +162,11 @@ void Sm4Page::buildUi()
     auto *actionRow = new QHBoxLayout;
     auto *encryptButton = createActionButton("Encrypt");
     auto *decryptButton = createActionButton("Decrypt", "secondary");
+    auto *sendOutputButton = createActionButton("Send Output", "secondary");
     auto *clearButton = createActionButton("Clear Workspace", "ghost");
     actionRow->addWidget(encryptButton);
     actionRow->addWidget(decryptButton);
+    actionRow->addWidget(sendOutputButton);
     actionRow->addStretch();
     actionRow->addWidget(clearButton);
     workLayout->addLayout(actionRow);
@@ -175,6 +177,11 @@ void Sm4Page::buildUi()
     grid->addWidget(createPanel("PROCESS", "Encrypt / Decrypt", "这里是主要工作区，专门承载输入数据和输出结果。", workLayout), 0, 1);
 
     auto *tagLayout = new QVBoxLayout;
+    auto *tagActions = new QHBoxLayout;
+    auto *sendTagButton = createActionButton("Send Tag", "secondary");
+    tagActions->addWidget(sendTagButton);
+    tagActions->addStretch();
+    tagLayout->addLayout(tagActions);
     tagLayout->addWidget(createSectionLabel("Authentication Tag"));
     tagLayout->addWidget(tagEdit_);
     grid->addWidget(createPanel("AEAD", "Tag Surface", "GCM / CCM 生成的认证标签单独展示，不和主输出混在一起。", tagLayout), 1, 1);
@@ -283,6 +290,8 @@ void Sm4Page::buildUi()
 
     connect(encryptButton, &QPushButton::clicked, this, &Sm4Page::handleEncrypt);
     connect(decryptButton, &QPushButton::clicked, this, &Sm4Page::handleDecrypt);
+    connect(sendOutputButton, &QPushButton::clicked, this, &Sm4Page::handleSendOutputToConverter);
+    connect(sendTagButton, &QPushButton::clicked, this, &Sm4Page::handleSendTagToConverter);
     connect(clearButton, &QPushButton::clicked, this, &Sm4Page::handleClear);
 }
 
@@ -344,4 +353,24 @@ void Sm4Page::handleClear()
     modeCombo_->setCurrentIndex(0);
     paddingCombo_->setCurrentIndex(0);
     setStatus("SM4 workspace cleared.", true);
+}
+
+void Sm4Page::handleSendOutputToConverter()
+{
+    if (outputEdit_->toPlainText().isEmpty()) {
+        setStatus("No SM4 output to send.", false);
+        return;
+    }
+
+    emit sendToConverterRequested(outputEdit_->toPlainText(), "Hex", "SM4 output");
+}
+
+void Sm4Page::handleSendTagToConverter()
+{
+    if (tagEdit_->toPlainText().isEmpty()) {
+        setStatus("No authentication tag to send.", false);
+        return;
+    }
+
+    emit sendToConverterRequested(tagEdit_->toPlainText(), "Hex", "SM4 authentication tag");
 }

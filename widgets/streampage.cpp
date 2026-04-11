@@ -87,9 +87,11 @@ void StreamPage::buildUi()
     auto *actionRow = new QHBoxLayout;
     auto *encryptButton = createActionButton("Encrypt");
     auto *decryptButton = createActionButton("Decrypt", "secondary");
+    auto *sendButton = createActionButton("Send Output to Converter", "secondary");
     auto *clearButton = createActionButton("Clear Workspace", "ghost");
     actionRow->addWidget(encryptButton);
     actionRow->addWidget(decryptButton);
+    actionRow->addWidget(sendButton);
     actionRow->addStretch();
     actionRow->addWidget(clearButton);
     workLayout->addLayout(actionRow);
@@ -133,6 +135,7 @@ void StreamPage::buildUi()
 
     connect(encryptButton, &QPushButton::clicked, this, &StreamPage::handleEncrypt);
     connect(decryptButton, &QPushButton::clicked, this, &StreamPage::handleDecrypt);
+    connect(sendButton, &QPushButton::clicked, this, &StreamPage::handleSendToConverter);
     connect(clearButton, &QPushButton::clicked, this, &StreamPage::handleClear);
 }
 
@@ -181,4 +184,14 @@ void StreamPage::handleClear()
     inputEdit_->clear();
     resultEdit_->clear();
     setStatus("Stream workspace cleared.", true);
+}
+
+void StreamPage::handleSendToConverter()
+{
+    if (resultEdit_->toPlainText().isEmpty()) {
+        setStatus("No stream output to send.", false);
+        return;
+    }
+
+    emit sendToConverterRequested(resultEdit_->toPlainText(), "Hex", "Stream output");
 }
