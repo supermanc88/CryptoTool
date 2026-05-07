@@ -5,15 +5,16 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += c++17
 
 INCLUDEPATH += .
-INCLUDEPATH += /opt/homebrew/Cellar/openssl@3/3.6.0/include
+INCLUDEPATH += /opt/homebrew/Cellar/openssl@3/3.6.2/include
 
-LIBS += /opt/homebrew/Cellar/openssl@3/3.6.0/lib/libcrypto.a
+LIBS += /opt/homebrew/Cellar/openssl@3/3.6.2/lib/libcrypto.a
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    crypto/aes_service.cpp \
     crypto/digest_service.cpp \
     crypto/dsa_service.cpp \
     crypto/mac_service.cpp \
@@ -27,6 +28,8 @@ SOURCES += \
     mainwindow.cpp \
     shared/crypto_common.cpp \
     shared/converter_service.cpp \
+    widgets/aespage.cpp \
+    widgets/blockcipherworkspacepage.cpp \
     widgets/convertersidepanel.cpp \
     widgets/digestpage.cpp \
     widgets/dsapage.cpp \
@@ -39,6 +42,7 @@ SOURCES += \
     widgets/utilitypage.cpp
 
 HEADERS += \
+    crypto/aes_service.h \
     crypto/digest_service.h \
     crypto/dsa_service.h \
     crypto/mac_service.h \
@@ -51,6 +55,8 @@ HEADERS += \
     mainwindow.h \
     shared/crypto_common.h \
     shared/converter_service.h \
+    widgets/aespage.h \
+    widgets/blockcipherworkspacepage.h \
     widgets/convertersidepanel.h \
     widgets/digestpage.h \
     widgets/dsapage.h \

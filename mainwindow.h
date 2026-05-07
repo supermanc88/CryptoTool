@@ -9,7 +9,7 @@ class QPushButton;
 class QWidget;
 class Sm2Page;
 class Sm3Page;
-class Sm4Page;
+class BlockCipherWorkspacePage;
 class RsaPage;
 class DsaPage;
 class DigestPage;
@@ -31,7 +31,7 @@ private:
     QStackedWidget *pageStack_;
     Sm2Page *sm2Page_;
     Sm3Page *sm3Page_;
-    Sm4Page *sm4Page_;
+    BlockCipherWorkspacePage *blockCipherPage_;
     RsaPage *rsaPage_;
     DsaPage *dsaPage_;
     DigestPage *digestPage_;

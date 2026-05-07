@@ -10,7 +10,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QScrollArea>
 #include <QTextEdit>
 #include <QVBoxLayout>
 
@@ -94,41 +93,35 @@ QWidget *Sm4Page::createPanel(const QString &eyebrow,
 
 void Sm4Page::buildUi()
 {
-    auto *scroll = new QScrollArea(this);
-    scroll->setWidgetResizable(true);
-    scroll->setFrameShape(QFrame::NoFrame);
-
-    auto *canvas = new QWidget(scroll);
-    auto *root = new QVBoxLayout(canvas);
-    root->setContentsMargins(28, 28, 28, 28);
+    auto *root = new QVBoxLayout(this);
+    root->setContentsMargins(0, 0, 0, 0);
     root->setSpacing(22);
 
-    auto *hero = new QFrame(canvas);
-    hero->setObjectName("sm4Hero");
-    auto *heroLayout = new QVBoxLayout(hero);
-    heroLayout->setContentsMargins(28, 28, 28, 28);
-    heroLayout->setSpacing(10);
+    auto *header = new QFrame(this);
+    header->setObjectName("sm4Header");
+    auto *headerLayout = new QVBoxLayout(header);
+    headerLayout->setContentsMargins(22, 22, 22, 22);
+    headerLayout->setSpacing(10);
 
-    auto *heroKicker = new QLabel("SM4 Workspace", hero);
-    heroKicker->setProperty("role", "hero-kicker");
-    auto *heroTitle = new QLabel("对称加解密页面真正独立出来", hero);
-    heroTitle->setProperty("role", "hero-title");
-    auto *heroBody = new QLabel("把模式、IV、AAD、补位、输入输出拆成单独的信息层级，让 SM4 不再像旧 tab 一样堆在一个表单平面上。", hero);
-    heroBody->setProperty("role", "hero-body");
-    heroBody->setWordWrap(true);
-
-    statusChip_ = new QLabel("Ready", hero);
+    auto *headerTop = new QHBoxLayout;
+    auto *headerEyebrow = new QLabel("SM4", header);
+    headerEyebrow->setProperty("role", "eyebrow");
+    statusChip_ = new QLabel("Ready", header);
     statusChip_->setObjectName("sm4StatusChip");
+    headerTop->addWidget(headerEyebrow);
+    headerTop->addStretch();
+    headerTop->addWidget(statusChip_);
 
-    auto *heroTop = new QHBoxLayout;
-    heroTop->addWidget(heroKicker);
-    heroTop->addStretch();
-    heroTop->addWidget(statusChip_);
+    auto *headerTitle = new QLabel("SM4 算法布局", header);
+    headerTitle->setProperty("role", "content-title");
+    auto *headerBody = new QLabel("在块加密运算工作台中保留 SM4 的配置、输入输出和标签工作流，但不再单独拥有页面滚动壳。", header);
+    headerBody->setProperty("role", "panel-description");
+    headerBody->setWordWrap(true);
 
-    heroLayout->addLayout(heroTop);
-    heroLayout->addWidget(heroTitle);
-    heroLayout->addWidget(heroBody);
-    root->addWidget(hero);
+    headerLayout->addLayout(headerTop);
+    headerLayout->addWidget(headerTitle);
+    headerLayout->addWidget(headerBody);
+    root->addWidget(header);
 
     keyEdit_ = createEditor("Key hex", false, 120);
     ivEdit_ = createEditor("IV / nonce hex", false, 110);
@@ -189,42 +182,26 @@ void Sm4Page::buildUi()
     grid->setColumnStretch(0, 4);
     grid->setColumnStretch(1, 5);
     root->addLayout(grid);
-    root->addStretch();
-
-    scroll->setWidget(canvas);
-    auto *pageLayout = new QVBoxLayout(this);
-    pageLayout->setContentsMargins(0, 0, 0, 0);
-    pageLayout->addWidget(scroll);
-
     setStyleSheet(R"(
-        QFrame#sm4Hero {
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #16324f, stop:0.55 #8a5a44, stop:1 #d8a35d);
-            border-radius: 28px;
-        }
         QFrame#sm4Panel {
             background: #fffdfa;
             border: 1px solid #d8d2c7;
             border-radius: 22px;
         }
-        QLabel[role="hero-kicker"] {
-            color: rgba(255,255,255,0.72);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 1px;
+        QFrame#sm4Header {
+            background: #f3eadf;
+            border: 1px solid #d8cbb9;
+            border-radius: 22px;
         }
-        QLabel[role="hero-title"] {
-            color: white;
-            font-size: 32px;
+        QLabel[role="content-title"] {
+            color: #2c2017;
+            font-size: 26px;
             font-weight: 800;
         }
-        QLabel[role="hero-body"] {
-            color: rgba(255,255,255,0.84);
-            font-size: 14px;
-        }
         QLabel#sm4StatusChip {
-            background: rgba(255,255,255,0.16);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.28);
+            background: #e8ded1;
+            color: #5a3d2e;
+            border: 1px solid #d4c0a9;
             border-radius: 999px;
             padding: 7px 12px;
             font-weight: 700;

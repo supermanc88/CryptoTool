@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 
+#include "widgets/blockcipherworkspacepage.h"
 #include "widgets/convertersidepanel.h"
 #include "widgets/digestpage.h"
 #include "widgets/dsapage.h"
@@ -7,7 +8,6 @@
 #include "widgets/rsapage.h"
 #include "widgets/sm2page.h"
 #include "widgets/sm3page.h"
-#include "widgets/sm4page.h"
 #include "widgets/streampage.h"
 #include "widgets/utilitypage.h"
 
@@ -29,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
     , pageStack_(nullptr)
     , sm2Page_(nullptr)
     , sm3Page_(nullptr)
-    , sm4Page_(nullptr)
+    , blockCipherPage_(nullptr)
     , rsaPage_(nullptr)
     , dsaPage_(nullptr)
     , digestPage_(nullptr)
@@ -57,7 +57,7 @@ void MainWindow::setupWindowShell()
     setStatusBar(new QStatusBar(this));
 
     const QVector<QString> pages = {
-        "SM2", "SM3", "SM4", "RSA", "DSA", "digest", "MAC", "Stream", "其它工具"
+        "SM2", "SM3", "块加密运算", "RSA", "DSA", "digest", "MAC", "Stream", "其它工具"
     };
 
     auto *rootLayout = new QHBoxLayout(central);
@@ -141,11 +141,11 @@ void MainWindow::setupWindowShell()
             connect(sm3Page_, &Sm3Page::statusMessageRequested, this, &MainWindow::showStatus);
             connect(sm3Page_, &Sm3Page::sendToConverterRequested, this, &MainWindow::loadConverterSource);
             scrollArea->setWidget(sm3Page_);
-        } else if (pageTitle == "SM4") {
-            sm4Page_ = new Sm4Page(scrollArea);
-            connect(sm4Page_, &Sm4Page::statusMessageRequested, this, &MainWindow::showStatus);
-            connect(sm4Page_, &Sm4Page::sendToConverterRequested, this, &MainWindow::loadConverterSource);
-            scrollArea->setWidget(sm4Page_);
+        } else if (pageTitle == "块加密运算") {
+            blockCipherPage_ = new BlockCipherWorkspacePage(scrollArea);
+            connect(blockCipherPage_, &BlockCipherWorkspacePage::statusMessageRequested, this, &MainWindow::showStatus);
+            connect(blockCipherPage_, &BlockCipherWorkspacePage::sendToConverterRequested, this, &MainWindow::loadConverterSource);
+            scrollArea->setWidget(blockCipherPage_);
         } else if (pageTitle == "RSA") {
             rsaPage_ = new RsaPage(scrollArea);
             connect(rsaPage_, &RsaPage::statusMessageRequested, this, &MainWindow::showStatus);
