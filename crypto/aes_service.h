@@ -14,6 +14,11 @@ OperationResult process(const QString &keyHex,
                         const QString &padding,
                         bool encryptMode);
 
+OperationResult processKeyWrap(const QString &kekHex,
+                               const QString &inputHex,
+                               const QString &variant,
+                               bool wrapMode);
+
 } // namespace Crypto::AesService
 
 #endif // CRYPTO_AES_SERVICE_H

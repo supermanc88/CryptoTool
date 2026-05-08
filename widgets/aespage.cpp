@@ -9,12 +9,16 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 
 using namespace WidgetChrome;
 
 AesPage::AesPage(QWidget *parent)
     : QWidget(parent)
+    , cipherSwitchButton_(nullptr)
+    , keyWrapSwitchButton_(nullptr)
+    , workflowStack_(nullptr)
     , modeCombo_(nullptr)
     , paddingCombo_(nullptr)
     , keyEdit_(nullptr)
@@ -23,6 +27,10 @@ AesPage::AesPage(QWidget *parent)
     , inputEdit_(nullptr)
     , tagEdit_(nullptr)
     , outputEdit_(nullptr)
+    , wrapVariantCombo_(nullptr)
+    , kekEdit_(nullptr)
+    , wrapInputEdit_(nullptr)
+    , wrapOutputEdit_(nullptr)
     , statusChip_(nullptr)
 {
     buildUi();
@@ -55,10 +63,30 @@ void AesPage::buildUi()
     headerBody->setProperty("role", "panel-description");
     headerBody->setWordWrap(true);
 
+    auto *workflowSwitchRow = new QHBoxLayout;
+    workflowSwitchRow->setSpacing(10);
+    cipherSwitchButton_ = new QPushButton("Block Cipher", header);
+    cipherSwitchButton_->setObjectName("workflowSwitch");
+    cipherSwitchButton_->setCheckable(true);
+    keyWrapSwitchButton_ = new QPushButton("Key Wrap", header);
+    keyWrapSwitchButton_->setObjectName("workflowSwitch");
+    keyWrapSwitchButton_->setCheckable(true);
+    workflowSwitchRow->addWidget(cipherSwitchButton_);
+    workflowSwitchRow->addWidget(keyWrapSwitchButton_);
+    workflowSwitchRow->addStretch();
+
     headerLayout->addLayout(headerTop);
     headerLayout->addWidget(headerTitle);
     headerLayout->addWidget(headerBody);
+    headerLayout->addLayout(workflowSwitchRow);
     root->addWidget(header);
+
+    workflowStack_ = new QStackedWidget(this);
+
+    auto *cipherCanvas = new QWidget(workflowStack_);
+    auto *cipherLayout = new QVBoxLayout(cipherCanvas);
+    cipherLayout->setContentsMargins(0, 0, 0, 0);
+    cipherLayout->setSpacing(18);
 
     modeCombo_ = new QComboBox;
     modeCombo_->addItems({"ECB", "CBC", "CTR", "GCM"});
@@ -118,12 +146,67 @@ void AesPage::buildUi()
 
     grid->setColumnStretch(0, 4);
     grid->setColumnStretch(1, 5);
-    root->addLayout(grid);
+    cipherLayout->addLayout(grid);
+
+    auto *wrapCanvas = new QWidget(workflowStack_);
+    auto *wrapLayout = new QGridLayout(wrapCanvas);
+    wrapLayout->setContentsMargins(0, 0, 0, 0);
+    wrapLayout->setHorizontalSpacing(18);
+    wrapLayout->setVerticalSpacing(18);
+
+    wrapVariantCombo_ = new QComboBox;
+    wrapVariantCombo_->addItems({"AES-KW", "AES-KWP"});
+    kekEdit_ = createEditor("KEK hex (16 / 24 / 32 bytes)", false, 120);
+    wrapInputEdit_ = createEditor("Plain key material hex for Wrap, or wrapped key hex for Unwrap", false, 220);
+    wrapOutputEdit_ = createEditor("Wrapped key output or unwrapped key material", true, 220);
+
+    auto *wrapConfigLayout = new QVBoxLayout;
+    wrapConfigLayout->addWidget(createSectionLabel("Variant"));
+    wrapConfigLayout->addWidget(wrapVariantCombo_);
+    wrapConfigLayout->addWidget(createSectionLabel("KEK"));
+    wrapConfigLayout->addWidget(kekEdit_);
+    wrapLayout->addWidget(createPanel("aesPanel",
+                                      "KEY WRAP",
+                                      "Wrapping Key Material",
+                                      "显式区分 KEK 与被封装材料，避免把 key wrap 误解成普通数据加解密。",
+                                      wrapConfigLayout), 0, 0);
+
+    auto *wrapWorkLayout = new QVBoxLayout;
+    auto *wrapActionRow = new QHBoxLayout;
+    auto *wrapButton = createActionButton("Wrap");
+    auto *unwrapButton = createActionButton("Unwrap", "secondary");
+    auto *sendWrapOutputButton = createActionButton("Send Output", "secondary");
+    auto *clearWrapButton = createActionButton("Clear Wrap Workspace", "ghost");
+    wrapActionRow->addWidget(wrapButton);
+    wrapActionRow->addWidget(unwrapButton);
+    wrapActionRow->addWidget(sendWrapOutputButton);
+    wrapActionRow->addStretch();
+    wrapActionRow->addWidget(clearWrapButton);
+    wrapWorkLayout->addLayout(wrapActionRow);
+    wrapWorkLayout->addWidget(createSectionLabel("Input Material"));
+    wrapWorkLayout->addWidget(wrapInputEdit_);
+    wrapWorkLayout->addWidget(createSectionLabel("Wrapped / Unwrapped Output"));
+    wrapWorkLayout->addWidget(wrapOutputEdit_);
+    wrapLayout->addWidget(createPanel("aesPanel",
+                                      "WORKFLOW",
+                                      "Wrap / Unwrap",
+                                      "这一层先把操作类型和字段语义理顺，后续再接入真实的 AES-KW / AES-KWP 服务逻辑。",
+                                      wrapWorkLayout), 0, 1);
+
+    wrapLayout->setColumnStretch(0, 4);
+    wrapLayout->setColumnStretch(1, 5);
+
+    workflowStack_->addWidget(cipherCanvas);
+    workflowStack_->addWidget(wrapCanvas);
+    root->addWidget(workflowStack_);
+
     setStyleSheet(R"(
         QFrame#aesPanel { background: #fffdfa; border: 1px solid #d8d2c7; border-radius: 22px; }
         QFrame#aesHeader { background: #edf1f4; border: 1px solid #cbd7df; border-radius: 22px; }
         QLabel[role="content-title"] { color: #1e2b34; font-size: 26px; font-weight: 800; }
         QLabel#aesStatusChip { background: #dbe5eb; color: #24485f; border: 1px solid #c2d1db; border-radius: 999px; padding: 7px 12px; font-weight: 700; }
+        QPushButton#workflowSwitch { background: #dbe5eb; color: #22445b; border: 1px solid #c2d1db; border-radius: 12px; padding: 10px 16px; font-weight: 700; }
+        QPushButton#workflowSwitch:checked { background: #2f6382; color: white; border: 1px solid #2f6382; }
         QLabel[role="eyebrow"] { color: #8b6840; font-size: 11px; font-weight: 800; letter-spacing: 1px; }
         QLabel[role="panel-title"] { color: #20170f; font-size: 24px; font-weight: 800; }
         QLabel[role="panel-description"] { color: #746553; font-size: 13px; }
@@ -139,17 +222,36 @@ void AesPage::buildUi()
         QPushButton[variant="ghost"]:hover { background: #ece4d8; }
     )");
 
+    connect(cipherSwitchButton_, &QPushButton::clicked, this, [this]() { switchWorkflow(0); });
+    connect(keyWrapSwitchButton_, &QPushButton::clicked, this, [this]() { switchWorkflow(1); });
     connect(encryptButton, &QPushButton::clicked, this, &AesPage::handleEncrypt);
     connect(decryptButton, &QPushButton::clicked, this, &AesPage::handleDecrypt);
+    connect(wrapButton, &QPushButton::clicked, this, &AesPage::handleWrap);
+    connect(unwrapButton, &QPushButton::clicked, this, &AesPage::handleUnwrap);
+    connect(sendWrapOutputButton, &QPushButton::clicked, this, &AesPage::handleSendWrapOutputToConverter);
+    connect(clearWrapButton, &QPushButton::clicked, this, &AesPage::handleClearWrap);
     connect(sendOutputButton, &QPushButton::clicked, this, &AesPage::handleSendOutputToConverter);
     connect(sendTagButton, &QPushButton::clicked, this, &AesPage::handleSendTagToConverter);
     connect(clearButton, &QPushButton::clicked, this, &AesPage::handleClear);
+
+    switchWorkflow(0);
 }
 
 void AesPage::setStatus(const QString &message, bool success)
 {
     applyStatusChip(statusChip_, message, success);
     emit statusMessageRequested(message, success);
+}
+
+void AesPage::switchWorkflow(int index)
+{
+    if (!workflowStack_ || !cipherSwitchButton_ || !keyWrapSwitchButton_) {
+        return;
+    }
+
+    workflowStack_->setCurrentIndex(index);
+    cipherSwitchButton_->setChecked(index == 0);
+    keyWrapSwitchButton_->setChecked(index == 1);
 }
 
 void AesPage::handleEncrypt()
@@ -206,6 +308,45 @@ void AesPage::handleClear()
     setStatus("AES workspace cleared.", true);
 }
 
+void AesPage::handleWrap()
+{
+    const auto result = Crypto::AesService::processKeyWrap(kekEdit_->toPlainText(),
+                                                           wrapInputEdit_->toPlainText(),
+                                                           wrapVariantCombo_->currentText(),
+                                                           true);
+    if (!result.success) {
+        setStatus(result.message, false);
+        return;
+    }
+
+    wrapOutputEdit_->setText(result.primaryText);
+    setStatus("AES key wrap completed.", true);
+}
+
+void AesPage::handleUnwrap()
+{
+    const auto result = Crypto::AesService::processKeyWrap(kekEdit_->toPlainText(),
+                                                           wrapInputEdit_->toPlainText(),
+                                                           wrapVariantCombo_->currentText(),
+                                                           false);
+    if (!result.success) {
+        setStatus(result.message, false);
+        return;
+    }
+
+    wrapOutputEdit_->setText(result.primaryText);
+    setStatus("AES key unwrap completed.", true);
+}
+
+void AesPage::handleClearWrap()
+{
+    wrapVariantCombo_->setCurrentIndex(0);
+    kekEdit_->clear();
+    wrapInputEdit_->clear();
+    wrapOutputEdit_->clear();
+    setStatus("AES key wrap workspace cleared.", true);
+}
+
 void AesPage::handleSendOutputToConverter()
 {
     if (outputEdit_->toPlainText().isEmpty()) {
@@ -214,6 +355,16 @@ void AesPage::handleSendOutputToConverter()
     }
 
     emit sendToConverterRequested(outputEdit_->toPlainText(), "Hex", "AES output");
+}
+
+void AesPage::handleSendWrapOutputToConverter()
+{
+    if (wrapOutputEdit_->toPlainText().isEmpty()) {
+        setStatus("No AES key wrap output to send.", false);
+        return;
+    }
+
+    emit sendToConverterRequested(wrapOutputEdit_->toPlainText(), "Hex", "AES key wrap output");
 }
 
 void AesPage::handleSendTagToConverter()

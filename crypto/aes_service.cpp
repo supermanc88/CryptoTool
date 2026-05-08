@@ -83,6 +83,34 @@ const EVP_CIPHER *resolveAesCipher(int keySize, const QString &mode)
     return nullptr;
 }
 
+EVP_CIPHER *resolveAesWrapCipher(int keySize, const QString &variant)
+{
+    QString algorithmName;
+    if (variant == "AES-KW") {
+        if (keySize == 16) {
+            algorithmName = "AES-128-WRAP";
+        } else if (keySize == 24) {
+            algorithmName = "AES-192-WRAP";
+        } else if (keySize == 32) {
+            algorithmName = "AES-256-WRAP";
+        }
+    } else if (variant == "AES-KWP") {
+        if (keySize == 16) {
+            algorithmName = "AES-128-WRAP-PAD";
+        } else if (keySize == 24) {
+            algorithmName = "AES-192-WRAP-PAD";
+        } else if (keySize == 32) {
+            algorithmName = "AES-256-WRAP-PAD";
+        }
+    }
+
+    if (algorithmName.isEmpty()) {
+        return nullptr;
+    }
+
+    return EVP_CIPHER_fetch(nullptr, algorithmName.toUtf8().constData(), nullptr);
+}
+
 } // namespace
 
 namespace Crypto::AesService {
@@ -243,6 +271,114 @@ OperationResult process(const QString &keyHex,
 out:
     OPENSSL_free(output);
     EVP_CIPHER_CTX_free(context);
+    return result;
+}
+
+OperationResult processKeyWrap(const QString &kekHex,
+                               const QString &inputHex,
+                               const QString &variant,
+                               bool wrapMode)
+{
+    OperationResult result;
+
+    QByteArray kekBytes;
+    QByteArray inputBytes;
+
+    auto fieldResult = parseHexField(kekHex, "KEK", true, &kekBytes);
+    if (!fieldResult.message.isEmpty()) {
+        return fieldResult;
+    }
+    fieldResult = parseHexField(inputHex,
+                                wrapMode ? "Plain key material" : "Wrapped key material",
+                                true,
+                                &inputBytes);
+    if (!fieldResult.message.isEmpty()) {
+        return fieldResult;
+    }
+
+    if (kekBytes.size() != 16 && kekBytes.size() != 24 && kekBytes.size() != 32) {
+        return invalidField("KEK must be 128, 192, or 256 bits.");
+    }
+
+    if (variant != "AES-KW" && variant != "AES-KWP") {
+        return invalidField("Unsupported AES key wrap variant.");
+    }
+
+    if (wrapMode && variant == "AES-KW") {
+        if (inputBytes.size() < 16 || (inputBytes.size() % 8) != 0) {
+            return invalidField("AES-KW input must be at least 16 bytes and a multiple of 8 bytes.");
+        }
+    }
+
+    if (!wrapMode && variant == "AES-KW") {
+        if (inputBytes.size() < 24 || (inputBytes.size() % 8) != 0) {
+            return invalidField("AES-KW wrapped input must be at least 24 bytes and a multiple of 8 bytes.");
+        }
+    }
+
+    if (!wrapMode && variant == "AES-KWP") {
+        if (inputBytes.size() < 16 || (inputBytes.size() % 8) != 0) {
+            return invalidField("AES-KWP wrapped input must be at least 16 bytes and a multiple of 8 bytes.");
+        }
+    }
+
+    EVP_CIPHER *cipher = resolveAesWrapCipher(kekBytes.size(), variant);
+    if (!cipher) {
+        return invalidField("Unsupported AES key wrap configuration.");
+    }
+
+    EVP_CIPHER_CTX *context = EVP_CIPHER_CTX_new();
+    if (!context) {
+        result.message = opensslError("Failed to create AES key wrap context.");
+        return result;
+    }
+
+    unsigned char *output = static_cast<unsigned char *>(OPENSSL_malloc(inputBytes.size() + EVP_CIPHER_get_block_size(cipher) + 32));
+    int outputLen = 0;
+    int tmpLen = 0;
+
+    if (!output) {
+        result.message = "Failed to allocate AES key wrap buffer.";
+        EVP_CIPHER_CTX_free(context);
+        EVP_CIPHER_free(cipher);
+        return result;
+    }
+
+    if (EVP_CipherInit_ex(context,
+                          cipher,
+                          nullptr,
+                          reinterpret_cast<const unsigned char *>(kekBytes.constData()),
+                          nullptr,
+                          wrapMode ? 1 : 0) != 1) {
+        result.message = opensslError("Failed to initialize AES key wrap.");
+        goto out;
+    }
+
+    if (EVP_CipherUpdate(context,
+                         output,
+                         &tmpLen,
+                         reinterpret_cast<const unsigned char *>(inputBytes.constData()),
+                         inputBytes.size()) != 1) {
+        result.message = opensslError("Failed to process AES key wrap input.");
+        goto out;
+    }
+    outputLen = tmpLen;
+
+    if (EVP_CipherFinal_ex(context, output + outputLen, &tmpLen) != 1) {
+        result.message = opensslError(wrapMode
+                                      ? "Failed to finalize AES key wrap."
+                                      : "Failed to finalize AES key unwrap.");
+        goto out;
+    }
+    outputLen += tmpLen;
+
+    result.success = true;
+    result.primaryText = QByteArray(reinterpret_cast<char *>(output), outputLen).toHex();
+
+out:
+    OPENSSL_free(output);
+    EVP_CIPHER_CTX_free(context);
+    EVP_CIPHER_free(cipher);
     return result;
 }
 
